@@ -2,37 +2,58 @@
 #define PMDETECTORCONSTRUCTION_HH
 
 #include "G4VUserDetectorConstruction.hh"
-
-#include "G4Box.hh"
-#include "G4Sphere.hh"
-
+#include "G4GenericMessenger.hh"
 #include "G4LogicalVolume.hh"
-#include "G4VPhysicalVolume.hh"
-#include "G4PVPlacement.hh"
 #include "G4Material.hh"
+#include "G4String.hh"
 
-#include "G4NistManager.hh"
-#include "G4SystemOfUnits.hh"
-#include "G4UnitsTable.hh"
+class G4VPhysicalVolume;
 
-#include "G4VisAttributes.hh"
-#include "G4Color.hh"
-#include "G4SDManager.hh"
-
-#include "PMSensitiveDetector.hh"
-
-class PMDetectorConstruction : public G4VUserDetectorConstruction
-{
+class PMDetectorConstruction : public G4VUserDetectorConstruction {
 public:
-    PMDetectorConstruction();
-    virtual ~PMDetectorConstruction();
+  PMDetectorConstruction();
+  ~PMDetectorConstruction() override;
 
-    virtual G4VPhysicalVolume *Construct();
+  const G4String& GetSNMMaterialName() const { return fSNMMatName; }
+  G4double GetSphereOuterRadius() const { return fSphereOuterRadius; }
+  G4double GetSphereInnerRadius() const { return fSphereInnerRadius; }
+
+  G4VPhysicalVolume* Construct() override;
+  void ConstructSDandField() override;
 
 private:
-    G4LogicalVolume *logicDetector;
+  // Methods to build special materials
+  G4Material* BuildU235();
+  G4Material* BuildHEU();
+  G4Material* BuildPu239();
+  G4Material* BuildWGPu();
+  G4Material* BuildTi6Al4V();
+  G4Material* BuildSS304L();
+  G4Material* ResolveMaterial(const G4String& name);
+  void BuildMessenger();
 
-    virtual void ConstructSDandField();
+  // Messenger for runtime configuration
+  G4GenericMessenger* fMessenger;
+
+  // Geometry and material parameters (with default values)
+  G4String fBusMatName;
+  G4String fSNMMatName;
+  G4String fBoxMatName;
+  G4double fBusOuterRadius;   // full outer radius of cylindrical bus (mm)
+  G4double fBusWallThk;       // wall thickness of bus cylinder (mm)
+  G4double fBusLength;        // full length (height) of bus cylinder (mm)
+  G4double fBusEndcapThk;     // endcap thickness along Z (mm); set 0 for open-ended tube
+  G4double fSphereOuterRadius; // outer radius of SNM sphere (mm)
+  G4double fSphereInnerRadius; // inner radius of SNM sphere (mm) (for hollow sphere)
+  G4double fBoxX;             // full length of electronics payload box in X dimension (mm)
+  G4double fBoxY;             // full length of electronics payload box in Y dimension (mm)
+  G4double fBoxZ;             // full length of electronics payload box in Z dimension (mm)
+
+  // Logical volume pointers (for visualization or further use)
+  G4LogicalVolume* fLogicBus;
+  G4LogicalVolume* fLogicSNM;
+  G4LogicalVolume* fLogicBox;
+  G4LogicalVolume* fLogicScoringPanel; // external vacuum scoring volume
 };
 
-#endif
+#endif // PMDETECTORCONSTRUCTION_HH

@@ -1,0 +1,355 @@
+Yes. I’d do this in **strict one-source-case-per-run mode** so you never create a mixed 50/75/95 dataset by accident.
+
+I’m assuming you saved the revised script as:
+
+`~/geant4-apps/geant4-11-SPACE/processing/build_ml_windows_dataset_v2.py`
+
+If you overwrote the old filename instead, just swap `build_ml_windows_dataset_v2.py` for `build_ml_windows_dataset.py`.
+
+First, set a few shell variables once:
+
+```bash
+ROOT=~/geant4-apps/geant4-11-SPACE/build/outputs
+PROC=~/geant4-apps/geant4-11-SPACE/processing
+WTS="$PROC/AP9_HEO_2k10k_i60_weighting_for_runs_10_15_20_30_50_60_80_100_150_200_300.csv"
+SCRIPT="$PROC/build_ml_windows_dataset_v2.py"
+OUTDIR="$PROC/ml_datasets"
+
+mkdir -p "$OUTDIR"
+```
+
+## 0) Baseline: ideal detector, signal only, AP9 week-average
+
+This is the clean reference set.
+
+```bash
+for SC in 50 75 95; do
+  python "$SCRIPT" \
+    --root-dir "$ROOT" \
+    --weights-csv "$WTS" \
+    --source-cases "$SC" \
+    --beam-energies 10 15 20 30 50 60 80 100 150 200 300 \
+    --window-s 10 \
+    --samples-per-group 500 \
+    --allow-missing-energies \
+    --dataset-view ml \
+    --disable-self-bg \
+    --bg-rate-hz 0 \
+    --eff 1.0 \
+    --Eth-MeV 0.1 \
+    --sigmaEfrac 0.0 \
+    --sigmaT-ns 0.0 \
+    --coinc-ns 500 \
+    --panel-x-m 2.0 \
+    --panel-y-size-m 1.0 \
+    --panel-z-size-m 1.0 \
+    --out "$OUTDIR/tier0_ideal_ap9avg_sc${SC}.csv" \
+    --debug-out "$OUTDIR/tier0_ideal_ap9avg_sc${SC}_debug.csv" \
+    --summary-out "$OUTDIR/tier0_ideal_ap9avg_sc${SC}_library_summary.csv" \
+    --manifest-out "$OUTDIR/tier0_ideal_ap9avg_sc${SC}_manifest.json"
+done
+```
+
+## 1) Add flat floor background
+
+This is the first difficulty increase. I used **2 Hz** as a mild example.
+
+```bash
+for SC in 50 75 95; do
+  python "$SCRIPT" \
+    --root-dir "$ROOT" \
+    --weights-csv "$WTS" \
+    --source-cases "$SC" \
+    --beam-energies 10 15 20 30 50 60 80 100 150 200 300 \
+    --window-s 10 \
+    --samples-per-group 500 \
+    --allow-missing-energies \
+    --dataset-view ml \
+    --disable-self-bg \
+    --bg-rate-hz 2.0 \
+    --bg-E-mean-MeV 2.0 \
+    --eff 1.0 \
+    --Eth-MeV 0.1 \
+    --sigmaEfrac 0.0 \
+    --sigmaT-ns 0.0 \
+    --coinc-ns 500 \
+    --panel-x-m 2.0 \
+    --panel-y-size-m 1.0 \
+    --panel-z-size-m 1.0 \
+    --out "$OUTDIR/tier1_flatbg2hz_ap9avg_sc${SC}.csv" \
+    --debug-out "$OUTDIR/tier1_flatbg2hz_ap9avg_sc${SC}_debug.csv" \
+    --summary-out "$OUTDIR/tier1_flatbg2hz_ap9avg_sc${SC}_library_summary.csv" \
+    --manifest-out "$OUTDIR/tier1_flatbg2hz_ap9avg_sc${SC}_manifest.json"
+done
+```
+
+## 2) Add library-based self-background on top of flat background
+
+I used `self-bg-scale = 0.10` as a starting point. That means the benign self-background source is sampled at 10% of the signal-source incident rate.
+
+```bash
+for SC in 50 75 95; do
+  python "$SCRIPT" \
+    --root-dir "$ROOT" \
+    --weights-csv "$WTS" \
+    --source-cases "$SC" \
+    --beam-energies 10 15 20 30 50 60 80 100 150 200 300 \
+    --window-s 10 \
+    --samples-per-group 500 \
+    --allow-missing-energies \
+    --dataset-view ml \
+    --bg-rate-hz 2.0 \
+    --bg-E-mean-MeV 2.0 \
+    --self-bg-material G4_Al \
+    --self-bg-rout-mm 70 \
+    --self-bg-rin-mm 65 \
+    --self-bg-scale 0.10 \
+    --eff 1.0 \
+    --Eth-MeV 0.1 \
+    --sigmaEfrac 0.0 \
+    --sigmaT-ns 0.0 \
+    --coinc-ns 500 \
+    --panel-x-m 2.0 \
+    --panel-y-size-m 1.0 \
+    --panel-z-size-m 1.0 \
+    --out "$OUTDIR/tier2_flatbg2hz_selfbg010_ap9avg_sc${SC}.csv" \
+    --debug-out "$OUTDIR/tier2_flatbg2hz_selfbg010_ap9avg_sc${SC}_debug.csv" \
+    --summary-out "$OUTDIR/tier2_flatbg2hz_selfbg010_ap9avg_sc${SC}_library_summary.csv" \
+    --manifest-out "$OUTDIR/tier2_flatbg2hz_selfbg010_ap9avg_sc${SC}_manifest.json"
+done
+```
+
+## 3) Add detector inefficiency, threshold, and smearing
+
+These values are example placeholders, not detector-validated numbers:
+
+* `eff = 0.35`
+* `Eth = 0.5 MeV`
+* `sigmaEfrac = 0.10`
+* `sigmaT = 5 ns`
+
+```bash
+for SC in 50 75 95; do
+  python "$SCRIPT" \
+    --root-dir "$ROOT" \
+    --weights-csv "$WTS" \
+    --source-cases "$SC" \
+    --beam-energies 10 15 20 30 50 60 80 100 150 200 300 \
+    --window-s 10 \
+    --samples-per-group 500 \
+    --allow-missing-energies \
+    --dataset-view ml \
+    --bg-rate-hz 2.0 \
+    --bg-E-mean-MeV 2.0 \
+    --self-bg-material G4_Al \
+    --self-bg-rout-mm 70 \
+    --self-bg-rin-mm 65 \
+    --self-bg-scale 0.10 \
+    --eff 0.35 \
+    --Eth-MeV 0.5 \
+    --sigmaEfrac 0.10 \
+    --sigmaT-ns 5.0 \
+    --coinc-ns 500 \
+    --panel-x-m 2.0 \
+    --panel-y-size-m 1.0 \
+    --panel-z-size-m 1.0 \
+    --out "$OUTDIR/tier3_resp035_thr05_smear_ap9avg_sc${SC}.csv" \
+    --debug-out "$OUTDIR/tier3_resp035_thr05_smear_ap9avg_sc${SC}_debug.csv" \
+    --summary-out "$OUTDIR/tier3_resp035_thr05_smear_ap9avg_sc${SC}_library_summary.csv" \
+    --manifest-out "$OUTDIR/tier3_resp035_thr05_smear_ap9avg_sc${SC}_manifest.json"
+done
+```
+
+## 4A) Harder geometry: larger standoff
+
+This keeps Tier 3 settings and moves the detector plane from 2 m to 5 m.
+
+```bash
+for SC in 50 75 95; do
+  python "$SCRIPT" \
+    --root-dir "$ROOT" \
+    --weights-csv "$WTS" \
+    --source-cases "$SC" \
+    --beam-energies 10 15 20 30 50 60 80 100 150 200 300 \
+    --window-s 10 \
+    --samples-per-group 500 \
+    --allow-missing-energies \
+    --dataset-view ml \
+    --bg-rate-hz 2.0 \
+    --bg-E-mean-MeV 2.0 \
+    --self-bg-material G4_Al \
+    --self-bg-rout-mm 70 \
+    --self-bg-rin-mm 65 \
+    --self-bg-scale 0.10 \
+    --eff 0.35 \
+    --Eth-MeV 0.5 \
+    --sigmaEfrac 0.10 \
+    --sigmaT-ns 5.0 \
+    --coinc-ns 500 \
+    --panel-x-m 5.0 \
+    --panel-y-size-m 1.0 \
+    --panel-z-size-m 1.0 \
+    --out "$OUTDIR/tier4a_standoff5m_ap9avg_sc${SC}.csv" \
+    --debug-out "$OUTDIR/tier4a_standoff5m_ap9avg_sc${SC}_debug.csv" \
+    --summary-out "$OUTDIR/tier4a_standoff5m_ap9avg_sc${SC}_library_summary.csv" \
+    --manifest-out "$OUTDIR/tier4a_standoff5m_ap9avg_sc${SC}_manifest.json"
+done
+```
+
+## 4B) Harder geometry: smaller detector panel
+
+This keeps Tier 3 settings and shrinks the panel from `1.0 x 1.0 m` to `0.5 x 0.5 m`.
+
+```bash
+for SC in 50 75 95; do
+  python "$SCRIPT" \
+    --root-dir "$ROOT" \
+    --weights-csv "$WTS" \
+    --source-cases "$SC" \
+    --beam-energies 10 15 20 30 50 60 80 100 150 200 300 \
+    --window-s 10 \
+    --samples-per-group 500 \
+    --allow-missing-energies \
+    --dataset-view ml \
+    --bg-rate-hz 2.0 \
+    --bg-E-mean-MeV 2.0 \
+    --self-bg-material G4_Al \
+    --self-bg-rout-mm 70 \
+    --self-bg-rin-mm 65 \
+    --self-bg-scale 0.10 \
+    --eff 0.35 \
+    --Eth-MeV 0.5 \
+    --sigmaEfrac 0.10 \
+    --sigmaT-ns 5.0 \
+    --coinc-ns 500 \
+    --panel-x-m 2.0 \
+    --panel-y-size-m 0.5 \
+    --panel-z-size-m 0.5 \
+    --out "$OUTDIR/tier4b_panel0p5m_ap9avg_sc${SC}.csv" \
+    --debug-out "$OUTDIR/tier4b_panel0p5m_ap9avg_sc${SC}_debug.csv" \
+    --summary-out "$OUTDIR/tier4b_panel0p5m_ap9avg_sc${SC}_library_summary.csv" \
+    --manifest-out "$OUTDIR/tier4b_panel0p5m_ap9avg_sc${SC}_manifest.json"
+done
+```
+
+## 4C) Harder geometry: larger standoff + smaller panel
+
+This is the tougher combined geometry case.
+
+```bash
+for SC in 50 75 95; do
+  python "$SCRIPT" \
+    --root-dir "$ROOT" \
+    --weights-csv "$WTS" \
+    --source-cases "$SC" \
+    --beam-energies 10 15 20 30 50 60 80 100 150 200 300 \
+    --window-s 10 \
+    --samples-per-group 500 \
+    --allow-missing-energies \
+    --dataset-view ml \
+    --bg-rate-hz 2.0 \
+    --bg-E-mean-MeV 2.0 \
+    --self-bg-material G4_Al \
+    --self-bg-rout-mm 70 \
+    --self-bg-rin-mm 65 \
+    --self-bg-scale 0.10 \
+    --eff 0.35 \
+    --Eth-MeV 0.5 \
+    --sigmaEfrac 0.10 \
+    --sigmaT-ns 5.0 \
+    --coinc-ns 500 \
+    --panel-x-m 5.0 \
+    --panel-y-size-m 0.5 \
+    --panel-z-size-m 0.5 \
+    --out "$OUTDIR/tier4c_standoff5m_panel0p5m_ap9avg_sc${SC}.csv" \
+    --debug-out "$OUTDIR/tier4c_standoff5m_panel0p5m_ap9avg_sc${SC}_debug.csv" \
+    --summary-out "$OUTDIR/tier4c_standoff5m_panel0p5m_ap9avg_sc${SC}_library_summary.csv" \
+    --manifest-out "$OUTDIR/tier4c_standoff5m_panel0p5m_ap9avg_sc${SC}_manifest.json"
+done
+```
+
+## 5A) Source-environment variant: high-flux interval only
+
+This uses your approximate high-flux interval idea: `>60 MeV ≈ 1e4 cm^-2 s^-1`.
+
+```bash
+for SC in 50 75 95; do
+  python "$SCRIPT" \
+    --root-dir "$ROOT" \
+    --weights-csv "$WTS" \
+    --source-cases "$SC" \
+    --beam-energies 10 15 20 30 50 60 80 100 150 200 300 \
+    --window-s 10 \
+    --samples-per-group 500 \
+    --allow-missing-energies \
+    --dataset-view ml \
+    --no-ap9-average \
+    --flux-regime high_gt60:60:1e4:1.0 \
+    --bg-rate-hz 2.0 \
+    --bg-E-mean-MeV 2.0 \
+    --self-bg-material G4_Al \
+    --self-bg-rout-mm 70 \
+    --self-bg-rin-mm 65 \
+    --self-bg-scale 0.10 \
+    --eff 0.35 \
+    --Eth-MeV 0.5 \
+    --sigmaEfrac 0.10 \
+    --sigmaT-ns 5.0 \
+    --coinc-ns 500 \
+    --panel-x-m 5.0 \
+    --panel-y-size-m 0.5 \
+    --panel-z-size-m 0.5 \
+    --out "$OUTDIR/tier5a_highgt60_1e4_sc${SC}.csv" \
+    --debug-out "$OUTDIR/tier5a_highgt60_1e4_sc${SC}_debug.csv" \
+    --summary-out "$OUTDIR/tier5a_highgt60_1e4_sc${SC}_library_summary.csv" \
+    --manifest-out "$OUTDIR/tier5a_highgt60_1e4_sc${SC}_manifest.json"
+done
+```
+
+## 5B) Source-environment variant: low-flux interval only
+
+This is the harder source case: `>60 MeV ≈ 1e2 cm^-2 s^-1`.
+
+```bash
+for SC in 50 75 95; do
+  python "$SCRIPT" \
+    --root-dir "$ROOT" \
+    --weights-csv "$WTS" \
+    --source-cases "$SC" \
+    --beam-energies 10 15 20 30 50 60 80 100 150 200 300 \
+    --window-s 10 \
+    --samples-per-group 500 \
+    --allow-missing-energies \
+    --dataset-view ml \
+    --no-ap9-average \
+    --flux-regime low_gt60:60:1e2:1.0 \
+    --bg-rate-hz 2.0 \
+    --bg-E-mean-MeV 2.0 \
+    --self-bg-material G4_Al \
+    --self-bg-rout-mm 70 \
+    --self-bg-rin-mm 65 \
+    --self-bg-scale 0.10 \
+    --eff 0.35 \
+    --Eth-MeV 0.5 \
+    --sigmaEfrac 0.10 \
+    --sigmaT-ns 5.0 \
+    --coinc-ns 500 \
+    --panel-x-m 5.0 \
+    --panel-y-size-m 0.5 \
+    --panel-z-size-m 0.5 \
+    --out "$OUTDIR/tier5b_lowgt60_1e2_sc${SC}.csv" \
+    --debug-out "$OUTDIR/tier5b_lowgt60_1e2_sc${SC}_debug.csv" \
+    --summary-out "$OUTDIR/tier5b_lowgt60_1e2_sc${SC}_library_summary.csv" \
+    --manifest-out "$OUTDIR/tier5b_lowgt60_1e2_sc${SC}_manifest.json"
+done
+```
+
+A few practical notes:
+
+* These commands **do not** create train/val/test splits.
+* They also **do not** create mixed 50/75/95 files, because each run uses one `--source-cases` value.
+* `--panel-x-m` is a **post-processing standoff proxy**. It changes geometric acceptance and TOF, but it does **not** rerun Geant4 with a different physical spacecraft layout.
+* The `high_gt60` / `low_gt60` regimes use your AP9 spectral shape and rescale it above 60 MeV. That is a useful approximation, but it is not a true time-resolved AP9 spectrum.
+
+The two commands I’d run first are **Tier 0** and **Tier 5B**. That gives you one clean easy set and one clearly hard set, which is a good bracket for early ML baselines.
+

@@ -1,0 +1,32 @@
+/control/verbose 0
+/run/verbose 1
+/tracking/verbose 0
+/run/numberOfThreads 1
+
+# ---------------- Geometry ----------------
+# SNM present:
+#/det/snmMaterial U235_solid
+
+# SNM absent control:
+#/det/snmMaterial G4_Galactic
+
+/run/initialize
+
+# ---------------- PM controls ----------------
+# Keep neutrons alive so we can test escape tallying
+/pm/maxEventTime 1e6 ns
+/pm/killGammas true
+/pm/killNeutronsAfterRecord false
+/pm/killNeutronsAfterEscape true
+
+# ---------------- Beam: +x toward origin ----------------
+/gun/particle proton
+/gun/energy   100 MeV
+/gun/position -850 0 0 mm
+/gun/direction 1 0 0
+
+# ---------------- Output ----------------
+# /analysis/setFileName build/outputs/debug_spacecraft_x100MeV
+
+/run/printProgress 5
+/run/beamOn 20

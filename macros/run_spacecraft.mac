@@ -1,0 +1,48 @@
+/control/verbose 0
+/run/verbose 0
+/tracking/verbose 0
+/run/numberOfThreads 16
+
+# ---------------- Geometry ----------------
+# Choose exactly one material per run:
+#/det/snmMaterial G4_Al
+#/det/sphereOuterRadius 78 mm
+#/det/sphereInnerRadius 3 mm
+
+/det/snmMaterial G4_Galactic
+#/det/snmMaterial G4_W
+
+# Uranium Options:
+#/det/snmMaterial U235_solid
+#/det/sphereOuterRadius 100 mm
+#/det/sphereInnerRadius 85 mm
+
+#/det/snmMaterial HEU
+#/det/sphereOuterRadius 100 mm
+#/det/sphereInnerRadius 85 mm
+
+# Plutonium Options:
+#/det/snmMaterial Pu239_solid
+#/det/sphereOuterRadius 70 mm
+#/det/sphereInnerRadius 65 mm
+
+#/det/snmMaterial WGPu
+/det/sphereOuterRadius 70 mm
+/det/sphereInnerRadius 65 mm
+
+/run/initialize
+
+# ---------------- PM controls ----------------
+# Keep neutrons alive so we can test escape tallying
+/pm/maxEventTime 1e8 ns
+/pm/killGammas true
+/pm/killNeutronsAfterRecord false
+/pm/killNeutronsAfterEscape true
+
+# ---------------- Beam: +x toward origin ----------------
+/gun/particle proton
+/gun/energy   1 MeV
+
+
+/run/printProgress 100000
+/run/beamOn 20000

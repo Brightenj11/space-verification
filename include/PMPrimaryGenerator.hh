@@ -1,23 +1,27 @@
+// PMPrimaryGenerator.hh
 #ifndef PMPRIMARYGENERATOR_HH
 #define PMPRIMARYGENERATOR_HH
 
 #include "G4VUserPrimaryGeneratorAction.hh"
-#include "G4ParticleDefinition.hh"
-#include "G4ParticleGun.hh"
-#include "G4ParticleTable.hh"
-#include "G4SystemOfUnits.hh"
-#include "G4IonTable.hh"
+#include "G4String.hh"
+#include "G4ThreeVector.hh"
 
-class PMPrimaryGenerator : public G4VUserPrimaryGeneratorAction
-{
+class G4ParticleGun;
+class G4Event;
+
+class PMPrimaryGenerator : public G4VUserPrimaryGeneratorAction {
 public:
-    PMPrimaryGenerator();
-    ~PMPrimaryGenerator();
+  PMPrimaryGenerator();
+  ~PMPrimaryGenerator() override;
 
-    virtual void GeneratePrimaries(G4Event *);
+  G4String GetParticleName() const;
+  G4double GetEnergy() const;
+  G4ThreeVector GetDirection() const;
+
+  void GeneratePrimaries(G4Event* event) override;
 
 private:
-    G4ParticleGun *fParticleGun;
+  G4ParticleGun* fGun; // one primary proton per event
 };
 
 #endif

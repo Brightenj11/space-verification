@@ -1,14 +1,36 @@
+/control/verbose 1
+/run/verbose 1
+/tracking/verbose 0
+/run/numberOfThreads 1
+
 /run/initialize
 
-/vis/open OGL 600x600-0+0
+# ---------------- PM controls ----------------
+/pm/maxEventTime 200 ns
+/pm/killGammas true
+/pm/killNeutronsAfterRecord false
+/pm/killNeutronsAfterEscape false
 
-/vis/viewer/set/viewpointVector 1 1 1
-/vis/viewer/set/autoRefresh true
+# ---------------- Primary beam: +x toward origin ----------------
+/gun/particle proton
+/gun/energy   100 MeV
+/gun/position -850 0 0 mm
+/gun/direction 1 0 0
 
+# ---------------- Visualization (robust) ----------------
+/vis/open OGL 900x900-0+0
 /vis/drawVolume
 
+/vis/viewer/set/autoRefresh true
+/vis/scene/add/axes 0 0 0 0.5 m
 /vis/scene/add/trajectories smooth
-/vis/scene/endOfEventAction accumulate
-/vis/scene/add/scale 10 cm
-/vis/scene/add/axes
-/vis/scene/add/eventID
+/tracking/storeTrajectory 1
+
+/vis/modeling/trajectories/create/drawByParticleID
+/vis/modeling/trajectories/drawByParticleID-0/set proton red
+/vis/modeling/trajectories/drawByParticleID-0/set neutron green
+
+/vis/viewer/set/style surface
+/vis/verbose warnings
+
+#/run/beamOn 200
