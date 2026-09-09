@@ -1,0 +1,93 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## What this is
+
+A Geant4 Monte Carlo simulation of a spacecraft bus with an optional special nuclear
+material (SNM) payload, tallying neutrons that escape the bus into free space.
+
+The project's actual question: can a satellite-borne detector separate the signal of
+SNM aboard another satellite from the ambient space radiation background — cosmic/galactic
+rays, Van Allen belt trapped protons, and atmospheric albedo protons/neutrons? This
+simulation is a test problem for that broader goal: proving out (in simulation) that the
+signal is separable from background is a prerequisite to designing and flying an actual
+detection satellite, and being first to demonstrate detection is the point.
+
+`README_UPDATED.txt` is the authoritative, detailed reference for the geometry, macro
+commands, and ntuple schema — read it before making changes to detector/tally logic;
+this file only summarizes what spans multiple files.
+
+## Build
+
+```bash
+mkdir -p build && cd build
+cmake .. -DGeant4_DIR=/path/to/Geant4Config.cmake
+cmake --build . -j
+```
+
+CMake globs all of `src/*.cc` into the `sim` executable and copies `macros/*.mac` into
+`build/`. There is no test suite or linter in this repo.
+
+## Running
+
+```bash
+./sim                                          # interactive (G4UIExecutive + vis.mac)
+./sim macros/run_spacecraft.mac                # batch mode
+./sim macros/run_spacecraft.mac QGSP_INCLXX_HP # choose reference physics list (arg 2)
+./sim macros/run_spacecraft.mac FTFP_INCLXX_HP decay  # arg 3 == "decay" registers G4RadioactiveDecayPhysics
+```
+
+Physics list defaults to `FTFP_INCLXX_HP` and is selected via `G4PhysListFactory` in
+`sim.cc` — there is no separate `PMPhysicsList` class. Output basename/type is set from
+the macro (`/analysis/setFileName`, `/analysis/setFileType root`); Geant4 does not create
+output directories, so the target dir must exist first.
+
+`scripts/run_batch.sh` sweeps materials/energies/event-counts by generating temp macros
+from `macros/materials.tsv` + `macros/common_beam.mac` and invoking `sim` per combination.
+
+## Architecture
+
+Three-stage pipeline: **Geant4 sim → per-run ntuples → processing scripts build ML
+datasets from many runs**.
+
+**Geant4 sim (`sim.cc`, `src/PM*.cc`)**: standard Geant4 action pattern
+(`PMActionInitialization` wires up `PMPrimaryGenerator`/`PMRunAction`/`PMEventAction`/
+`PMSteppingAction`). `PMDetectorConstruction` builds a fixed concentric geometry (World →
+BusShell → BusEnvelope → SNMSphere → SNMCore, plus electronics boxes) and exposes
+dimensions/materials as runtime macro commands (`/det/...`) via `G4GenericMessenger` —
+this is how a "vacuum" (background) run vs. an "SNM present" run are the *same* geometry
+with `/det/snmMaterial` toggled between `G4_Galactic` and `U235_solid`/`HEU`/
+`Pu239_solid`/`WGPu`. All the actual tallying (region classification, neutron birth/escape
+recording, event classification as none/primaryHadronic/snmFissionLike) lives in
+`PMSteppingAction`, not in a `G4VSensitiveDetector`. `PMRunAction` defines the two output
+ntuples, `Events` (one row/event) and `EscapeNeutrons` (one row per neutron crossing into
+the world), joined on `eventID`. Region codes (0-5, 99=unknown) and neutron creator codes
+(RadioactiveDecay/Deexcitation/Inelastic/Fission/Capture/Elastic) are simulation-wide
+conventions defined in `PMSteppingAction` and documented in `README_UPDATED.txt`.
+
+**Per-run outputs** land in `build/outputs/*.root` (or CSV if file type isn't set to
+root). `scripts/plot_*.py` reproduce specific figures directly from one or more ROOT/CSV
+files (see each script's docstring for its CLI).
+
+**ML dataset construction (`processing/`)**: `build_ml_windows_dataset_v2.py` reads many
+mono-energetic Geant4 ROOT runs from a directory (physical identity comes from each run's
+`RunConfig` table, not the filename), reweights them by an AP9 trapped-proton flux
+spectrum (`processing/AP9_HEO_..._weighting_for_runs_....csv`, 50/75/95 "source cases"),
+projects `EscapeNeutrons` onto a virtual detector plane, and bins them into synthetic
+fixed-duration (e.g. 10 s) measurement windows — one row per window — with optional
+detector effects (efficiency, energy threshold, energy/timing smearing, flat background,
+library-based self-background). Runs are organized into **tiers** of increasing realism
+(tier0 = idealized/no background up through tier5 = harder source-flux regimes); tier
+definitions and rationale are in `processing/Readme_ML_datasets.txt`, ML-facing output
+column semantics are in `processing/build_ml_windows_dataset_ml_README.txt`, and example
+invocations for every tier are in `processing/build_ml_windows_cmdline.txt`. Generated
+tiered CSVs/manifests go to `processing/ml_datasets/`; the actual model training/analysis
+happens in the notebooks there (`final_project*.ipynb`), not in `.py` files.
+
+## Conventions
+
+- Energies in MeV (kinetic), times in ns (Geant4 global time), counts as integers.
+- `/det/...` geometry/material changes must happen before `/run/initialize`.
+- When adding a new tallied quantity, it needs a matching column defined in both
+  `PMRunAction` (ntuple schema) and the fill call in `PMSteppingAction`.
