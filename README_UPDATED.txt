@@ -146,6 +146,23 @@ The default primary generator is a `G4ParticleGun` (one particle per event). You
 - `/gun/position -850 0 0 mm`
 - `/gun/direction 1 0 0`
 
+### AP9 pitch-angle source (`/pmgun/…`)
+
+Off by default. Setting a pitch table replaces the fixed gun energy, position and direction each
+event; `/gun/energy`, `/gun/position` and `/gun/direction` are ignored while it is set.
+
+- `/pmgun/pitchTable <path.csv>`: table from `scripts/ap9_pitch_table.py` (rows = pitch angle in deg,
+  columns = energy in MeV, values = orbit-averaged AP9 directional flux)
+  e.g. `/pmgun/pitchTable ../macros/ap9_pitch_1000km.csv` when running `sim` from `build/`
+- `/pmgun/bDir <x y z>`: local magnetic field direction in the bus frame (default `0 0 1`)
+
+Per event: energy E and pitch angle α are sampled together from j(E, α)·sin α (j interpolated
+log-log in E across the table's energy range, linear in α, mirrored about 90°, zero below the
+smallest tabulated angle = loss cone), gyrophase uniform, and the start point uniform on a disk
+facing the direction. The disk radius (also its standoff distance) is computed from the bus:
+sqrt(busOuterRadius^2 + (busLength/2)^2) + 50 mm = 1300 mm for the default bus. Pass the same
+radius to processing as `--target-radius-cm`.
+
 ### Output controls (`/analysis/…`)
 
 - Set the output basename:
@@ -433,6 +450,12 @@ Debug / validation helpers:
 - `vtxProcessName` (string)
 - `vtxProcessType` (int)
 - `vtxProcessSubType` (int)
+
+Source:
+
+- `pitch_deg` (double): primary proton pitch angle relative to `/pmgun/bDir`; -1 when the fixed gun is used
+- `hitBus` (int 0/1): 1 if the primary proton entered the bus (regions 1-5); disk-source protons that miss are 0
+- `E_primary_MeV` (double): primary proton kinetic energy at generation (sampled per event in pitch-table mode)
 
 ---
 

@@ -15,6 +15,8 @@ public:
   ~PMDetectorConstruction() override;
 
   const G4String& GetSNMMaterialName() const { return fSNMMatName; }
+  G4double GetBusOuterRadius() const { return fBusOuterRadius; }
+  G4double GetBusLength() const { return fBusLength; }
   G4double GetSphereOuterRadius() const { return fSphereOuterRadius; }
   G4double GetSphereInnerRadius() const { return fSphereInnerRadius; }
 

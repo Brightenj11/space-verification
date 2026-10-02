@@ -75,6 +75,7 @@ private:
   static thread_local int    t_evtId;
 
   static thread_local bool   t_seenPrimaryInelastic;
+  static thread_local bool   t_primaryHitBus;
   static thread_local int    t_vtxRegion;
   static thread_local double t_EpVtx_MeV;
   static thread_local double t_tVtx_ns;

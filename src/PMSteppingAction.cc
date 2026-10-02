@@ -1,6 +1,7 @@
 // PMSteppingAction.cc 
 #include "PMSteppingAction.hh"
 #include "PMRunAction.hh"
+#include "PMPrimaryGenerator.hh"
 
 #include "G4AnalysisManager.hh"
 #include "G4EventManager.hh"
@@ -37,6 +38,7 @@ G4bool   PMSteppingAction::sKillNeutronsAfterEscape = true;
 thread_local int    PMSteppingAction::t_evtId                = -1;
 
 thread_local bool   PMSteppingAction::t_seenPrimaryInelastic = false;
+thread_local bool   PMSteppingAction::t_primaryHitBus        = false;
 thread_local int    PMSteppingAction::t_vtxRegion            = 99;
 thread_local double PMSteppingAction::t_EpVtx_MeV            = 0.0;
 thread_local double PMSteppingAction::t_tVtx_ns              = 0.0;
@@ -165,6 +167,7 @@ void PMSteppingAction::ResetEventStateIfNew(int eid) {
   t_evtId = eid;
 
   t_seenPrimaryInelastic = false;
+  t_primaryHitBus        = false;
   t_vtxRegion            = 99;
   t_EpVtx_MeV            = 0.0;
   t_tVtx_ns              = 0.0;
@@ -266,6 +269,11 @@ void PMSteppingAction::WriteEventsRow() {
   ana->FillNtupleSColumn(id, PMRunAction::kEvt_vtxProcName, vtxProcLabel);
   ana->FillNtupleIColumn(id, PMRunAction::kEvt_vtxProcType, t_vtxProcType);
   ana->FillNtupleIColumn(id, PMRunAction::kEvt_vtxProcSubType, t_vtxProcSubType);
+  const auto* gen = static_cast<const PMPrimaryGenerator*>(
+      G4RunManager::GetRunManager()->GetUserPrimaryGeneratorAction());
+  ana->FillNtupleDColumn(id, PMRunAction::kEvt_pitch_deg, gen ? gen->GetLastPitchDeg() : -1.0);
+  ana->FillNtupleIColumn(id, PMRunAction::kEvt_hitBus, t_primaryHitBus ? 1 : 0);
+  ana->FillNtupleDColumn(id, PMRunAction::kEvt_E_primary_MeV, gen ? gen->GetEnergy()/MeV : -1.0);
 
   ana->AddNtupleRow(id);
 }
@@ -311,6 +319,8 @@ void PMSteppingAction::UserSteppingAction(const G4Step* step) {
 
   // Primary proton: latch first hadronic inelastic / secondary-producing vertex and region
   if (def->GetParticleName() == "proton" && track->GetParentID() == 0) {
+    if (postReg >= 1 && postReg <= 5) t_primaryHitBus = true; // entered bus or anything inside it
+
     const auto* proc = post ? post->GetProcessDefinedStep() : nullptr;
     const bool isHadronic = (proc && proc->GetProcessType() == fHadronic);
 

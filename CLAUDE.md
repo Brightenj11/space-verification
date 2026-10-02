@@ -14,6 +14,12 @@ simulation is a test problem for that broader goal: proving out (in simulation) 
 signal is separable from background is a prerequisite to designing and flying an actual
 detection satellite, and being first to demonstrate detection is the point.
 
+The main background source is the Van Allen belt trapped protons, and AP9 shows they are strongly
+directional: the flux depends on pitch angle relative to the local magnetic field. At 1000 km it is
+close to zero below ~60° (loss cone) and peaks at 90°. The energy spectrum also changes with pitch
+angle, so the primary proton source samples energy and direction together from AP9
+(`/pmgun/pitchTable`) instead of treating the flux as isotropic or as a fixed mono-energetic beam.
+
 `README_UPDATED.txt` is the authoritative, detailed reference for the geometry, macro
 commands, and ntuple schema — read it before making changes to detector/tally logic;
 this file only summarizes what spans multiple files.
@@ -25,6 +31,10 @@ mkdir -p build && cd build
 cmake .. -DGeant4_DIR=/path/to/Geant4Config.cmake
 cmake --build . -j
 ```
+
+Geant4 (11.3.2) is installed through nix, and Claude's shell does not load that nix environment,
+so Claude cannot configure, build, or run `sim`. The user builds and runs it; Claude can at most
+syntax-check against the headers in `/nix/store/*geant4-11.3.2/include/Geant4`.
 
 CMake globs all of `src/*.cc` into the `sim` executable and copies `macros/*.mac` into
 `build/`. There is no test suite or linter in this repo.
@@ -42,6 +52,10 @@ Physics list defaults to `FTFP_INCLXX_HP` and is selected via `G4PhysListFactory
 `sim.cc` — there is no separate `PMPhysicsList` class. Output basename/type is set from
 the macro (`/analysis/setFileName`, `/analysis/setFileType root`); Geant4 does not create
 output directories, so the target dir must exist first.
+
+AP9 exports (`scripts/1000km_<angle>deg_ap9.txt`, flux vs. time at one pitch angle each) are
+collapsed into a pitch × energy CSV with `scripts/ap9_pitch_table.py` (kept in `macros/`, e.g.
+`macros/ap9_pitch_1000km.csv`), and the gun reads that CSV via `/pmgun/pitchTable`.
 
 `scripts/run_batch.sh` sweeps materials/energies/event-counts by generating temp macros
 from `macros/materials.tsv` + `macros/common_beam.mac` and invoking `sim` per combination.
