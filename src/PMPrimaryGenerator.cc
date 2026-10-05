@@ -151,12 +151,12 @@ void PMPrimaryGenerator::GeneratePrimaries(G4Event* evt)
   if (!fPitchTablePath.empty()) {
     if (fLoadedPath != fPitchTablePath) LoadPitchTable();
 
-    // Draw one (angle, energy) cell, then a uniform point inside it (energy uniform in log E).
+    // Draw one (angle, energy) cell; the proton gets the cell's center angle and energy.
     const auto cell = std::upper_bound(fCdf.begin(), fCdf.end(), G4UniformRand()) - fCdf.begin() - 1;
-    const G4double alpha = (cell / kNEnergyBins + G4UniformRand()) * 180.*deg / kNAngleBins;
+    const G4double alpha = (cell / kNEnergyBins + 0.5) * 180.*deg / kNAngleBins;
     const G4double logEmin = std::log(fTableEnergies.front());
     const G4double dLogE = (std::log(fTableEnergies.back()) - logEmin) / kNEnergyBins;
-    fGun->SetParticleEnergy(std::exp(logEmin + (cell % kNEnergyBins + G4UniformRand()) * dLogE) * MeV);
+    fGun->SetParticleEnergy(std::exp(logEmin + (cell % kNEnergyBins + 0.5) * dLogE) * MeV);
     fLastPitchDeg = alpha/deg;
     const G4double gyro = twopi * G4UniformRand();
     const G4ThreeVector b = fBDir.unit();
