@@ -71,7 +71,7 @@ void PMRunAction::BeginOfRunAction(const G4Run* run) {
 
   if (gen) {
     // Pitch-angle mode samples energy and direction every event: beamE is -1, beamDir is 0 0 0,
-    // and pitchTable + bDir describe the source (per-event values are in Events).
+    // and pitchTable describes the source (per-event values are in Events).
     const bool pitchMode = !gen->GetPitchTable().empty();
     ana->FillNtupleSColumn(nid, RunConfigCols::kCfg_beamParticle, gen->GetParticleName());
     ana->FillNtupleDColumn(nid, RunConfigCols::kCfg_beamE_MeV, pitchMode ? -1.0 : gen->GetEnergy()/MeV);
@@ -81,11 +81,7 @@ void PMRunAction::BeginOfRunAction(const G4Run* run) {
     ana->FillNtupleDColumn(nid, RunConfigCols::kCfg_beamDirY, dir.y());
     ana->FillNtupleDColumn(nid, RunConfigCols::kCfg_beamDirZ, dir.z());
 
-    const auto b = pitchMode ? gen->GetBDir() : G4ThreeVector();
     ana->FillNtupleSColumn(nid, RunConfigCols::kCfg_pitchTable, pitchMode ? gen->GetPitchTable() : G4String("none"));
-    ana->FillNtupleDColumn(nid, RunConfigCols::kCfg_bDirX, b.x());
-    ana->FillNtupleDColumn(nid, RunConfigCols::kCfg_bDirY, b.y());
-    ana->FillNtupleDColumn(nid, RunConfigCols::kCfg_bDirZ, b.z());
   } else {
     ana->FillNtupleSColumn(nid, RunConfigCols::kCfg_beamParticle, "UNKNOWN");
     ana->FillNtupleDColumn(nid, RunConfigCols::kCfg_beamE_MeV, -1.0);
@@ -93,9 +89,6 @@ void PMRunAction::BeginOfRunAction(const G4Run* run) {
     ana->FillNtupleDColumn(nid, RunConfigCols::kCfg_beamDirY, 0.0);
     ana->FillNtupleDColumn(nid, RunConfigCols::kCfg_beamDirZ, 0.0);
     ana->FillNtupleSColumn(nid, RunConfigCols::kCfg_pitchTable, "UNKNOWN");
-    ana->FillNtupleDColumn(nid, RunConfigCols::kCfg_bDirX, 0.0);
-    ana->FillNtupleDColumn(nid, RunConfigCols::kCfg_bDirY, 0.0);
-    ana->FillNtupleDColumn(nid, RunConfigCols::kCfg_bDirZ, 0.0);
   }
 
   ana->AddNtupleRow(nid);
@@ -124,9 +117,6 @@ void PMRunAction::SetupOutput() {
   ana->CreateNtupleDColumn(fRunConfigNtupleId, "beamDirY");
   ana->CreateNtupleDColumn(fRunConfigNtupleId, "beamDirZ");
   ana->CreateNtupleSColumn(fRunConfigNtupleId, "pitchTable");
-  ana->CreateNtupleDColumn(fRunConfigNtupleId, "bDirX");
-  ana->CreateNtupleDColumn(fRunConfigNtupleId, "bDirY");
-  ana->CreateNtupleDColumn(fRunConfigNtupleId, "bDirZ");
   ana->FinishNtuple(fRunConfigNtupleId);
 
   // ---- Events (one row per event) ----

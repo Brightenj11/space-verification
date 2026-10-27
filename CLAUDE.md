@@ -62,8 +62,8 @@ from `macros/materials.tsv` + `macros/common_beam.mac` and invoking `sim` per co
 
 ## Architecture
 
-Three-stage pipeline: **Geant4 sim → per-run ntuples → processing scripts build ML
-datasets from many runs**.
+Geant4 sim → per-run ntuples → plotting scripts. `processing/` is not in use: don't read,
+edit, move, or reference anything in it, and don't adapt sim changes to it.
 
 **Geant4 sim (`sim.cc`, `src/PM*.cc`)**: standard Geant4 action pattern
 (`PMActionInitialization` wires up `PMPrimaryGenerator`/`PMRunAction`/`PMEventAction`/
@@ -83,21 +83,6 @@ conventions defined in `PMSteppingAction` and documented in `README_UPDATED.txt`
 **Per-run outputs** land in `build/outputs/*.root` (or CSV if file type isn't set to
 root). `scripts/plot_*.py` reproduce specific figures directly from one or more ROOT/CSV
 files (see each script's docstring for its CLI).
-
-**ML dataset construction (`processing/`)**: `build_ml_windows_dataset_v2.py` reads many
-mono-energetic Geant4 ROOT runs from a directory (physical identity comes from each run's
-`RunConfig` table, not the filename), reweights them by an AP9 trapped-proton flux
-spectrum (`processing/AP9_HEO_..._weighting_for_runs_....csv`, 50/75/95 "source cases"),
-projects `EscapeNeutrons` onto a virtual detector plane, and bins them into synthetic
-fixed-duration (e.g. 10 s) measurement windows — one row per window — with optional
-detector effects (efficiency, energy threshold, energy/timing smearing, flat background,
-library-based self-background). Runs are organized into **tiers** of increasing realism
-(tier0 = idealized/no background up through tier5 = harder source-flux regimes); tier
-definitions and rationale are in `processing/Readme_ML_datasets.txt`, ML-facing output
-column semantics are in `processing/build_ml_windows_dataset_ml_README.txt`, and example
-invocations for every tier are in `processing/build_ml_windows_cmdline.txt`. Generated
-tiered CSVs/manifests go to `processing/ml_datasets/`; the actual model training/analysis
-happens in the notebooks there (`final_project*.ipynb`), not in `.py` files.
 
 ## Conventions
 

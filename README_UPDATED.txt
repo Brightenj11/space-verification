@@ -154,14 +154,11 @@ event; `/gun/energy`, `/gun/position` and `/gun/direction` are ignored while it 
 - `/pmgun/pitchTable <path.csv>`: table from `scripts/ap9_pitch_table.py` (rows = pitch angle in deg,
   columns = energy in MeV, values = orbit-averaged AP9 directional flux)
   e.g. `/pmgun/pitchTable ../macros/ap9_pitch_1000km.csv` when running `sim` from `build/`
-- `/pmgun/bDir <x y z>`: local magnetic field direction in the bus frame (default `0 0 1`)
-
 Per event: energy E and pitch angle α are sampled together from j(E, α)·sin α (j interpolated
 log-log in E across the table's energy range, linear in α, mirrored about 90°, zero below the
-smallest tabulated angle = loss cone), gyrophase uniform, and the start point uniform on a disk
-facing the direction. The disk radius (also its standoff distance) is computed from the bus:
-sqrt(busOuterRadius^2 + (busLength/2)^2) + 50 mm = 1300 mm for the default bus. Pass the same
-radius to processing as `--target-radius-cm`.
+smallest tabulated angle = loss cone). B is taken along the bus axis (+z), so α is measured from
++z. Every proton hits the same hull point, (-busOuterRadius, 0, 0), starting 100 mm back along
+its direction; the gyrophase is uniform over the half of the cone that enters the hull there.
 
 ### Output controls (`/analysis/…`)
 
@@ -453,7 +450,7 @@ Debug / validation helpers:
 
 Source:
 
-- `pitch_deg` (double): primary proton pitch angle relative to `/pmgun/bDir`; -1 when the fixed gun is used
+- `pitch_deg` (double): primary proton pitch angle relative to the bus axis (+z); -1 when the fixed gun is used
 - `hitBus` (int 0/1): 1 if the primary proton entered the bus (regions 1-5); disk-source protons that miss are 0
 - `E_primary_MeV` (double): primary proton kinetic energy at generation (sampled per event in pitch-table mode)
 

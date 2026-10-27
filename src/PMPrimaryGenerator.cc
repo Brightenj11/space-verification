@@ -52,7 +52,6 @@ PMPrimaryGenerator::PMPrimaryGenerator()
   fMessenger = new G4GenericMessenger(this, "/pmgun/", "AP9 pitch-angle proton source");
   fMessenger->DeclareProperty("pitchTable", fPitchTablePath,
       "CSV from scripts/ap9_pitch_table.py; samples energy + direction from AP9 (empty = fixed gun)");
-  fMessenger->DeclareProperty("bDir", fBDir, "Local magnetic field direction in the bus frame");
 }
 
 PMPrimaryGenerator::~PMPrimaryGenerator()
@@ -158,20 +157,17 @@ void PMPrimaryGenerator::GeneratePrimaries(G4Event* evt)
     const G4double dLogE = (std::log(fTableEnergies.back()) - logEmin) / kNEnergyBins;
     fGun->SetParticleEnergy(std::exp(logEmin + (cell % kNEnergyBins + 0.5) * dLogE) * MeV);
     fLastPitchDeg = alpha/deg;
-    const G4double gyro = twopi * G4UniformRand();
-    const G4ThreeVector b = fBDir.unit();
-    const G4ThreeVector e1 = b.orthogonal().unit(), e2 = b.cross(e1);
-    const G4ThreeVector dir = std::cos(alpha)*b + std::sin(alpha)*(std::cos(gyro)*e1 + std::sin(gyro)*e2);
+    // B is taken along the bus axis (+z), so pitch is measured from z. Gyrophase is uniform over the
+    // half facing into the hull (dir.x > 0); the other half would reach the hit point from inside the bus.
+    const G4double gyro = (G4UniformRand() - 0.5) * pi;
+    const G4ThreeVector dir(std::sin(alpha)*std::cos(gyro), std::sin(alpha)*std::sin(gyro), std::cos(alpha));
 
-    // Uniform on a disk facing dir. Radius = bus bounding sphere (cylinder corner) + 50 mm margin,
-    // so the disk covers the bus from any direction and, standing off by the same distance, starts outside it.
+    // ponytail: every proton hits one hull point, the side at mid-length where the old fixed beam hit;
+    // spread hit points over the hull when position variability matters. Starts 100 mm back along dir.
     const auto* det = static_cast<const PMDetectorConstruction*>(
         G4RunManager::GetRunManager()->GetUserDetectorConstruction());
-    const G4double sourceR = std::hypot(det->GetBusOuterRadius(), 0.5*det->GetBusLength()) + 50.*mm;
-    const G4ThreeVector u1 = dir.orthogonal().unit(), u2 = dir.cross(u1);
-    const G4double r = sourceR * std::sqrt(G4UniformRand());
-    const G4double psi = twopi * G4UniformRand();
-    fGun->SetParticlePosition(-sourceR*dir + r*(std::cos(psi)*u1 + std::sin(psi)*u2));
+    const G4ThreeVector hit(-det->GetBusOuterRadius(), 0., 0.);
+    fGun->SetParticlePosition(hit - 100.*mm*dir);
     fGun->SetParticleMomentumDirection(dir);
   }
   fGun->GeneratePrimaryVertex(evt);

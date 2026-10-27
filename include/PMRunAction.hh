@@ -30,10 +30,7 @@ public:
     kCfg_beamDirX,
     kCfg_beamDirY,
     kCfg_beamDirZ,
-    kCfg_pitchTable,
-    kCfg_bDirX,
-    kCfg_bDirY,
-    kCfg_bDirZ
+    kCfg_pitchTable
   };
 
   // -------- Events ntuple columns (must match SetupOutput order) --------
@@ -70,7 +67,7 @@ public:
     kEvt_vtxProcName,           // name of process that defined the primary vertex step
     kEvt_vtxProcType,           // G4ProcessType (int)
     kEvt_vtxProcSubType,        // process subtype (int)
-    kEvt_pitch_deg,             // primary pitch angle vs /pmgun/bDir (deg); -1 = fixed gun
+    kEvt_pitch_deg,             // primary pitch angle vs bus axis +z (deg); -1 = fixed gun
     kEvt_hitBus,                // 0/1: primary proton entered the bus (region 1..5)
     kEvt_E_primary_MeV          // primary proton kinetic energy at generation
   };
