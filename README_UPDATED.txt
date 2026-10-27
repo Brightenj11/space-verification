@@ -107,7 +107,6 @@ If the **third** argument is exactly `decay`, the run registers `G4RadioactiveDe
 - Materials
   - `/det/busMaterial <name>`
   - `/det/snmMaterial <name>`
-  - `/det/boxMaterial <name>`
 
 - Dimensions (all **full** dimensions unless stated otherwise)
   - `/det/busOuterRadius <val> mm`
@@ -115,9 +114,6 @@ If the **third** argument is exactly `decay`, the run registers `G4RadioactiveDe
   - `/det/busLength <val> mm`
   - `/det/sphereOuterRadius <val> mm`
   - `/det/sphereInnerRadius <val> mm`
-  - `/det/boxSizeX <val> mm`
-  - `/det/boxSizeY <val> mm`
-  - `/det/boxSizeZ <val> mm`
 
 **Important:** Set `/det/...` parameters **before** `/run/initialize` (or re‑initialize after changing them).
 
@@ -248,11 +244,6 @@ All geometry is centered at the origin.
   - only created if `sphereInnerRadius > 0`
   - vacuum sphere of radius `sphereInnerRadius`
 
-- **Electronics payload box** (`ElectronicsBoxLV`)
-  - two boxes placed along ±Z
-  - default full size: 500×500×600 mm
-  - positioned at `z = ±(sphereOuterRadius + boxHalfZ + 50 mm)`
-
 ---
 
 ## Materials
@@ -328,7 +319,6 @@ Region codes are derived from the **logical volume name** at a step point:
 | 0 | `WorldLV` | Outside spacecraft (“world”; vacuum) |
 | 1 | `BusShellLV` | Spacecraft hull/shell material |
 | 2 | `BusEnvelopeLV` | Inside‑bus envelope (vacuum) |
-| 3 | `ElectronicsBoxLV` | Internal payload/electronics volume |
 | 4 | `SNMSphereLV` | SNM shell material volume |
 | 5 | `SNMCoreLV` | Inner SNM cavity (vacuum), if enabled |
 | 99 | (anything else / missing) | Unknown / not mapped |
@@ -505,14 +495,12 @@ Example for the per‑event `Events` ntuple:
 #column int nBorn_r0
 #column int nBorn_r1
 #column int nBorn_r2
-#column int nBorn_r3
 #column int nBorn_r4
 #column int nBorn_r5
 #column int nEscapedTotal
 #column int nEscBirth_r0
 #column int nEscBirth_r1
 #column int nEscBirth_r2
-#column int nEscBirth_r3
 #column int nEscBirth_r4
 #column int nEscBirth_r5
 #column int hasPrimaryInelastic

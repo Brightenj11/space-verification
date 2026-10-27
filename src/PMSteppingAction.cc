@@ -80,11 +80,11 @@ void PMSteppingAction::BuildMessenger() {
 
 int PMSteppingAction::RegionCodeFromLVName(const G4String& lvName) {
   // Your declared convention:
-  // 0=outside bus vacuum, 1=hull, 2=inside-bus vacuum, 3=payload, 4=SNM shell, 5=SNM core vacuum
+  // 0=outside bus vacuum, 1=hull, 2=inside-bus vacuum, 4=SNM shell, 5=SNM core vacuum
+  // (3 was the electronics payload box, now removed; code kept unused so 4/5 don't shift)
   if (lvName == "WorldLV")          return 0;
   if (lvName == "BusShellLV")       return 1;
   if (lvName == "BusEnvelopeLV")    return 2;
-  if (lvName == "ElectronicsBoxLV") return 3;
   if (lvName == "SNMSphereLV")      return 4;
   if (lvName == "SNMCoreLV")        return 5;
   return 99;
@@ -104,7 +104,6 @@ G4String PMSteppingAction::RegionNameFromCode(int code) {
     case 0:  return "World";
     case 1:  return "BusShell";
     case 2:  return "BusEnvelope";
-    case 3:  return "ElectronicsBox";
     case 4:  return "SNMSphere";
     case 5:  return "SNMCore";
     default: return "Unknown";
@@ -241,7 +240,6 @@ void PMSteppingAction::WriteEventsRow() {
   ana->FillNtupleIColumn(id, PMRunAction::kEvt_nBorn_r0, t_nBornByReg[0]);
   ana->FillNtupleIColumn(id, PMRunAction::kEvt_nBorn_r1, t_nBornByReg[1]);
   ana->FillNtupleIColumn(id, PMRunAction::kEvt_nBorn_r2, t_nBornByReg[2]);
-  ana->FillNtupleIColumn(id, PMRunAction::kEvt_nBorn_r3, t_nBornByReg[3]);
   ana->FillNtupleIColumn(id, PMRunAction::kEvt_nBorn_r4, t_nBornByReg[4]);
   ana->FillNtupleIColumn(id, PMRunAction::kEvt_nBorn_r5, t_nBornByReg[5]);
 
@@ -249,7 +247,6 @@ void PMSteppingAction::WriteEventsRow() {
   ana->FillNtupleIColumn(id, PMRunAction::kEvt_nEscBirth_r0, t_nEscByBirthReg[0]);
   ana->FillNtupleIColumn(id, PMRunAction::kEvt_nEscBirth_r1, t_nEscByBirthReg[1]);
   ana->FillNtupleIColumn(id, PMRunAction::kEvt_nEscBirth_r2, t_nEscByBirthReg[2]);
-  ana->FillNtupleIColumn(id, PMRunAction::kEvt_nEscBirth_r3, t_nEscByBirthReg[3]);
   ana->FillNtupleIColumn(id, PMRunAction::kEvt_nEscBirth_r4, t_nEscByBirthReg[4]);
   ana->FillNtupleIColumn(id, PMRunAction::kEvt_nEscBirth_r5, t_nEscByBirthReg[5]);
 

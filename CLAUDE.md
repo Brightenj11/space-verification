@@ -68,7 +68,7 @@ edit, move, or reference anything in it, and don't adapt sim changes to it.
 **Geant4 sim (`sim.cc`, `src/PM*.cc`)**: standard Geant4 action pattern
 (`PMActionInitialization` wires up `PMPrimaryGenerator`/`PMRunAction`/`PMEventAction`/
 `PMSteppingAction`). `PMDetectorConstruction` builds a fixed concentric geometry (World →
-BusShell → BusEnvelope → SNMSphere → SNMCore, plus electronics boxes) and exposes
+BusShell → BusEnvelope → SNMSphere → SNMCore, plus two external ScoringPanel copies) and exposes
 dimensions/materials as runtime macro commands (`/det/...`) via `G4GenericMessenger` —
 this is how a "vacuum" (background) run vs. an "SNM present" run are the *same* geometry
 with `/det/snmMaterial` toggled between `G4_Galactic` and `U235_solid`/`HEU`/

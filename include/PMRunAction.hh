@@ -47,7 +47,6 @@ public:
     kEvt_nBorn_r0,
     kEvt_nBorn_r1,
     kEvt_nBorn_r2,
-    kEvt_nBorn_r3,
     kEvt_nBorn_r4,
     kEvt_nBorn_r5,
 
@@ -55,7 +54,6 @@ public:
     kEvt_nEscBirth_r0,
     kEvt_nEscBirth_r1,
     kEvt_nEscBirth_r2,
-    kEvt_nEscBirth_r3,
     kEvt_nEscBirth_r4,
     kEvt_nEscBirth_r5,
 

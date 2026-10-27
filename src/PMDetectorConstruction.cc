@@ -23,7 +23,6 @@ PMDetectorConstruction::PMDetectorConstruction()
   // Set default materials and geometry sizes (estimated dimensions)
   fBusMatName("G4_Al"),      // default bus material: Aluminum
   fSNMMatName("WGPu"),       // default SNM material: WG Pu
-  fBoxMatName("G4_Al"),      // default electronics payload material: Aluminum
 
   // --- BUS GEOMETRY ---
   fBusOuterRadius(750.0*mm), // bus outer radius (0.75 m)
@@ -39,13 +38,7 @@ PMDetectorConstruction::PMDetectorConstruction()
   fSphereOuterRadius(70.0*mm), // 7 cm outer radius
   fSphereInnerRadius(65.0*mm), // 6.5 cm inner radius (hollow sphere)
 
-  // --- ELECTRONICS BOX GEOMETRY ---
-  // CHANGE THESE: 50x50x60 cm (full dimensions)
-  fBoxX(500.0*mm),           // 50 cm in X
-  fBoxY(500.0*mm),           // 50 cm in Y
-  fBoxZ(600.0*mm),           // 60 cm in Z
-
-  fLogicBus(nullptr), fLogicSNM(nullptr), fLogicBox(nullptr), fLogicScoringPanel(nullptr)
+  fLogicBus(nullptr), fLogicSNM(nullptr), fLogicScoringPanel(nullptr)
 {
   BuildMessenger();
 }
@@ -65,8 +58,6 @@ void PMDetectorConstruction::BuildMessenger() {
     .SetGuidance("Material of the satellite bus (e.g. G4_Al, G4_Ti, G4_W, Ti6Al4V, SS304L)");
   fMessenger->DeclareProperty("snmMaterial", fSNMMatName)
     .SetGuidance("Material of the SNM payload (e.g. U235_solid for HEU, or other defined material)");
-  fMessenger->DeclareProperty("boxMaterial", fBoxMatName)
-    .SetGuidance("Material of the electronics payload box (e.g. G4_Al, SS304L)");
 
   // Geometric properties with units (can be adjusted via macro)
   fMessenger->DeclarePropertyWithUnit("busOuterRadius", "mm", fBusOuterRadius)
@@ -83,13 +74,6 @@ void PMDetectorConstruction::BuildMessenger() {
     .SetGuidance("Outer radius of SNM hollow sphere (in mm).");
   fMessenger->DeclarePropertyWithUnit("sphereInnerRadius", "mm", fSphereInnerRadius)
     .SetGuidance("Inner radius of SNM hollow sphere (in mm). Set 0 for a solid sphere.");
-  
-  fMessenger->DeclarePropertyWithUnit("boxSizeX", "mm", fBoxX)
-    .SetGuidance("Full size of electronics payload box in X dimension (in mm).");
-  fMessenger->DeclarePropertyWithUnit("boxSizeY", "mm", fBoxY)
-    .SetGuidance("Full size of electronics payload box in Y dimension (in mm).");
-  fMessenger->DeclarePropertyWithUnit("boxSizeZ", "mm", fBoxZ)
-    .SetGuidance("Full size of electronics payload box in Z dimension (in mm).");
 }
 
 G4Material* PMDetectorConstruction::BuildU235() {
@@ -219,7 +203,6 @@ G4VPhysicalVolume* PMDetectorConstruction::Construct() {
   // Resolve materials for each component
   G4Material* busMat = ResolveMaterial(fBusMatName);
   G4Material* snmMat = ResolveMaterial(fSNMMatName);
-  G4Material* boxMat = ResolveMaterial(fBoxMatName);
 
   // --- Bus envelope (vacuum interior + container for shell and internal payloads) ---
   const G4double busInnerR     = (fBusOuterRadius > fBusWallThk) ? (fBusOuterRadius - fBusWallThk) : 0.0;
@@ -279,24 +262,6 @@ G4VPhysicalVolume* PMDetectorConstruction::Construct() {
                       logicBusEnv, false, 0, checkOverlaps);
   }
 
-  // --- Electronics payload boxes as daughters of bus envelope ---
-  const G4double halfX = 0.5 * fBoxX;
-  const G4double halfY = 0.5 * fBoxY;
-  const G4double halfZ = 0.5 * fBoxZ;
-
-  auto* solidBox = new G4Box("ElectronicsBox", halfX, halfY, halfZ);
-  fLogicBox = new G4LogicalVolume(solidBox, boxMat, "ElectronicsBoxLV");
-
-  const G4double gap = 50.0*mm;
-  const G4double placeZ = fSphereOuterRadius + halfZ + gap;
-
-  new G4PVPlacement(nullptr, G4ThreeVector(0.0, 0.0,  placeZ), fLogicBox,
-                    "ElectronicsBoxPV", logicBusEnv, false, 0, checkOverlaps);
-
-  new G4PVPlacement(nullptr, G4ThreeVector(0.0, 0.0, -placeZ), fLogicBox,
-                    "ElectronicsBoxPV_NegZ", logicBusEnv, false, 1, checkOverlaps);
-
-
   // --- External vacuum scoring panel (1 m^2 in YZ, 0.5 m thick in X) ---
   // Dimensions: Y=1.0 m, Z=1.0 m (area = 1 m^2), X=0.5 m (thickness)
   const G4double scoreHalfX = 0.25*m;
@@ -306,13 +271,17 @@ G4VPhysicalVolume* PMDetectorConstruction::Construct() {
   auto* solidScoringPanel = new G4Box("ScoringPanel", scoreHalfX, scoreHalfY, scoreHalfZ);
   fLogicScoringPanel = new G4LogicalVolume(solidScoringPanel, vac, "ScoringPanelLV");
 
-  // Place ~1.75 m from origin in the +x,+z direction, centered on y=0 (straddles y-axis).
-  // Using x=z=1.75/sqrt(2) m so that sqrt(x^2+z^2)=1.75 m.
-  const G4double scoreX0 = 2000*mm;
-  const G4double scoreZ0 = 1000*mm;
+  // Both panels face the payload (origin) from 1 m outside the hull (near face to hull).
+  // Copy 0: side panel on +x, behind the payload from the proton hit point at -x.
+  // Copy 1: end panel on +z, same panel rotated 90 deg about y so its thin axis runs along z.
+  const G4double scoreGap = 1000*mm;
+  new G4PVPlacement(nullptr, G4ThreeVector(fBusOuterRadius + scoreGap + scoreHalfX, 0.0, 0.0),
+                    fLogicScoringPanel, "ScoringPanelPV", logicWorld, false, 0, checkOverlaps);
 
-  new G4PVPlacement(nullptr, G4ThreeVector(scoreX0, 0.0, scoreZ0), fLogicScoringPanel,
-                    "ScoringPanelPV", logicWorld, false, 0, checkOverlaps);
+  auto* rotEnd = new G4RotationMatrix();
+  rotEnd->rotateY(90.*deg);
+  new G4PVPlacement(rotEnd, G4ThreeVector(0.0, 0.0, busHalfLength + scoreGap + scoreHalfX),
+                    fLogicScoringPanel, "ScoringPanelPV_End", logicWorld, false, 1, checkOverlaps);
 
 
   // Visualization attributes for each component
@@ -324,10 +293,6 @@ G4VPhysicalVolume* PMDetectorConstruction::Construct() {
   G4VisAttributes* visSNM = new G4VisAttributes(G4Colour(1.0, 0.0, 0.0, 0.4)); // red, semi-transparent
   visSNM->SetForceSolid(true);
   fLogicSNM->SetVisAttributes(visSNM);
-  // Electronics box: semi-transparent green
-  G4VisAttributes* visBox = new G4VisAttributes(G4Colour(0.5, 0.5, 0.8, 0.4)); // light blue-gray, semi-transparent
-  visBox->SetForceSolid(true);
-  fLogicBox->SetVisAttributes(visBox);
 
   // Scoring panel: orange (semi-transparent)
   G4VisAttributes* visScore = new G4VisAttributes(G4Colour(1.0, 0.55, 0.0, 0.35)); // orange

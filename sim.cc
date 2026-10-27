@@ -1,6 +1,9 @@
 #include <iostream>
 #include "G4RunManager.hh"
 #include "G4MTRunManager.hh"
+#include "G4ScoringManager.hh"
+#include "G4TScoreHistFiller.hh"
+#include "G4AnalysisManager.hh"
 #include "G4UImanager.hh"
 #include "G4VisManager.hh"
 #include "G4VisExecutive.hh"
@@ -30,8 +33,11 @@ int main(int argc, char** argv)
 #else
     auto* runManager = new G4RunManager;
 #endif
+    // Scoring commands
+    G4ScoringManager* scoringManager = G4ScoringManager::GetScoringManager();
+    G4ScoringManager::GetScoringManager();
+    new G4TScoreHistFiller<G4AnalysisManager>;
 
-    
     G4String plName = (argc >= 3) ? argv[2] : "FTFP_INCLXX_HP"; // or read getenv("PHYS")
     G4PhysListFactory factory;
     G4VModularPhysicsList* physicsList = factory.GetReferencePhysList(plName);

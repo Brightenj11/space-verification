@@ -25,7 +25,6 @@ REGION_LABELS: Dict[int, str] = {
     0: "World (outside spacecraft)",
     1: "Bus shell (hull material)",
     2: "Bus envelope (internal vacuum)",
-    3: "Electronics box",
     4: "Sphere volume (SNM shell)",
     5: "SNM core (inner void)",
     99: "Unknown / unmapped",
@@ -209,7 +208,7 @@ def plot_transport_time_spectrum(es: pd.DataFrame, outdir: Path, title_prefix: s
 
 def plot_birth_region(es: pd.DataFrame, outdir: Path, title_prefix: str) -> None:
     vc = es["birthRegion"].value_counts().to_dict()
-    region_keys = [0, 1, 2, 3, 4, 5] + ([99] if INCLUDE_UNKNOWN_REGION else [])
+    region_keys = [0, 1, 2, 4, 5] + ([99] if INCLUDE_UNKNOWN_REGION else [])
     labels = [REGION_LABELS.get(k, f"Region {k}") for k in region_keys]
     values = [int(vc.get(k, 0)) for k in region_keys]
 
@@ -366,7 +365,7 @@ def compare_class_distribution(cases: List[Tuple[str, pd.DataFrame]], outdir: Pa
 
 
 def compare_birth_region(cases: List[Tuple[str, pd.DataFrame]], outdir: Path) -> None:
-    region_keys = [0, 1, 2, 3, 4, 5] + ([99] if INCLUDE_UNKNOWN_REGION else [])
+    region_keys = [0, 1, 2, 4, 5] + ([99] if INCLUDE_UNKNOWN_REGION else [])
     x = np.arange(len(region_keys))
     width = 0.8 / max(1, len(cases))
 

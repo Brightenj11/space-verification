@@ -133,7 +133,6 @@ void PMRunAction::SetupOutput() {
   ana->CreateNtupleIColumn(fEventsNtupleId, "nBorn_r0");
   ana->CreateNtupleIColumn(fEventsNtupleId, "nBorn_r1");
   ana->CreateNtupleIColumn(fEventsNtupleId, "nBorn_r2");
-  ana->CreateNtupleIColumn(fEventsNtupleId, "nBorn_r3");
   ana->CreateNtupleIColumn(fEventsNtupleId, "nBorn_r4");
   ana->CreateNtupleIColumn(fEventsNtupleId, "nBorn_r5");
 
@@ -141,7 +140,6 @@ void PMRunAction::SetupOutput() {
   ana->CreateNtupleIColumn(fEventsNtupleId, "nEscBirth_r0");
   ana->CreateNtupleIColumn(fEventsNtupleId, "nEscBirth_r1");
   ana->CreateNtupleIColumn(fEventsNtupleId, "nEscBirth_r2");
-  ana->CreateNtupleIColumn(fEventsNtupleId, "nEscBirth_r3");
   ana->CreateNtupleIColumn(fEventsNtupleId, "nEscBirth_r4");
   ana->CreateNtupleIColumn(fEventsNtupleId, "nEscBirth_r5");
 
