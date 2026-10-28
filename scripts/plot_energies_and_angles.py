@@ -3,6 +3,12 @@ import re
 import matplotlib.pyplot as plt
 import pandas as pd
 
+""" 
+Makes files like angle_flux_coarse.png and angle_flux.png, 
+which show the differential fluxes at multiple energies and angles from AP9 
+over time. Can specify energies sand angles to plot. 
+"""
+
 
 def parse_header(filepath):
     """Parses header lines from AP9/PLASMA text files to find column names and pitch angle."""
