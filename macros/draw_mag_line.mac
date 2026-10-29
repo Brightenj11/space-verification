@@ -1,0 +1,131 @@
+# Draws the pitch-angle (alpha) / gyrophase (phi) diagram from scripts/plot_pitch_geometry.py:
+# B field line along the bus side, one proton (alpha = 65 deg, phi = 45 deg) hitting (-R, 0, 0),
+# and the angle arcs. Proton path drawn 1.6 m long (not to scale). Run after vis.mac:
+#   /control/execute draw_mag_line.mac
+# Coordinates precomputed (macros can't do trig); B along +z as in PMPrimaryGenerator.
+/vis/viewer/set/autoRefresh false
+/vis/set/lineWidth 3
+
+# B field line along the bus side, through the hit point
+/vis/set/colour blue
+/vis/set/textColour blue
+/vis/scene/add/arrow -750 0 -1700 -750 0 1900 mm
+/vis/scene/add/text -750 0 2000 mm 20 0 0 B
+
+# Proton heading into the hit point
+/vis/set/colour red
+/vis/set/textColour red
+/vis/scene/add/arrow -1775 -1025 -676 -750 0 0 mm
+/vis/scene/add/text -1620 -320 -111 mm 16 0 0 proton
+
+# Reference frame at the proton start: B copy (+z), +x, plane perpendicular to B
+/vis/set/lineWidth 1
+/vis/set/colour blue
+/vis/set/textColour blue
+/vis/scene/add/line -1775 -1025 -676 -1775 -1025 224 mm
+/vis/set/colour grey
+/vis/set/textColour grey
+/vis/scene/add/line -1775 -1025 -676 -875 -1025 -676 mm
+/vis/scene/add/text -825 -1025 -726 mm 12 0 0 +x
+/vis/scene/add/line -875 -1025 -676 -883 -908 -676 mm
+/vis/scene/add/line -883 -908 -676 -906 -792 -676 mm
+/vis/scene/add/line -906 -792 -676 -944 -681 -676 mm
+/vis/scene/add/line -944 -681 -676 -996 -575 -676 mm
+/vis/scene/add/line -996 -575 -676 -1061 -477 -676 mm
+/vis/scene/add/line -1061 -477 -676 -1139 -389 -676 mm
+/vis/scene/add/line -1139 -389 -676 -1227 -311 -676 mm
+/vis/scene/add/line -1227 -311 -676 -1325 -246 -676 mm
+/vis/scene/add/line -1325 -246 -676 -1431 -194 -676 mm
+/vis/scene/add/line -1431 -194 -676 -1542 -156 -676 mm
+/vis/scene/add/line -1542 -156 -676 -1658 -133 -676 mm
+/vis/scene/add/line -1658 -133 -676 -1775 -125 -676 mm
+/vis/scene/add/line -1775 -125 -676 -1893 -133 -676 mm
+/vis/scene/add/line -1893 -133 -676 -2008 -156 -676 mm
+/vis/scene/add/line -2008 -156 -676 -2120 -194 -676 mm
+/vis/scene/add/line -2120 -194 -676 -2225 -246 -676 mm
+/vis/scene/add/line -2225 -246 -676 -2323 -311 -676 mm
+/vis/scene/add/line -2323 -311 -676 -2412 -389 -676 mm
+/vis/scene/add/line -2412 -389 -676 -2489 -477 -676 mm
+/vis/scene/add/line -2489 -477 -676 -2555 -575 -676 mm
+/vis/scene/add/line -2555 -575 -676 -2607 -681 -676 mm
+/vis/scene/add/line -2607 -681 -676 -2645 -792 -676 mm
+/vis/scene/add/line -2645 -792 -676 -2668 -908 -676 mm
+/vis/scene/add/line -2668 -908 -676 -2675 -1025 -676 mm
+/vis/scene/add/line -2675 -1025 -676 -2668 -1143 -676 mm
+/vis/scene/add/line -2668 -1143 -676 -2645 -1258 -676 mm
+/vis/scene/add/line -2645 -1258 -676 -2607 -1370 -676 mm
+/vis/scene/add/line -2607 -1370 -676 -2555 -1475 -676 mm
+/vis/scene/add/line -2555 -1475 -676 -2489 -1573 -676 mm
+/vis/scene/add/line -2489 -1573 -676 -2412 -1662 -676 mm
+/vis/scene/add/line -2412 -1662 -676 -2323 -1739 -676 mm
+/vis/scene/add/line -2323 -1739 -676 -2225 -1805 -676 mm
+/vis/scene/add/line -2225 -1805 -676 -2120 -1857 -676 mm
+/vis/scene/add/line -2120 -1857 -676 -2008 -1895 -676 mm
+/vis/scene/add/line -2008 -1895 -676 -1893 -1918 -676 mm
+/vis/scene/add/line -1893 -1918 -676 -1775 -1925 -676 mm
+/vis/scene/add/line -1775 -1925 -676 -1658 -1918 -676 mm
+/vis/scene/add/line -1658 -1918 -676 -1542 -1895 -676 mm
+/vis/scene/add/line -1542 -1895 -676 -1431 -1857 -676 mm
+/vis/scene/add/line -1431 -1857 -676 -1325 -1805 -676 mm
+/vis/scene/add/line -1325 -1805 -676 -1227 -1739 -676 mm
+/vis/scene/add/line -1227 -1739 -676 -1139 -1662 -676 mm
+/vis/scene/add/line -1139 -1662 -676 -1061 -1573 -676 mm
+/vis/scene/add/line -1061 -1573 -676 -996 -1475 -676 mm
+/vis/scene/add/line -996 -1475 -676 -944 -1370 -676 mm
+/vis/scene/add/line -944 -1370 -676 -906 -1258 -676 mm
+/vis/scene/add/line -906 -1258 -676 -883 -1143 -676 mm
+/vis/scene/add/line -883 -1143 -676 -875 -1025 -676 mm
+/vis/scene/add/line -1199 -449 -296 -1199 -449 -676 mm
+
+# Projection of the proton direction onto the perpendicular plane
+/vis/set/colour green
+/vis/set/textColour green
+/vis/scene/add/line -1775 -1025 -676 -1199 -449 -676 mm
+
+# Pitch angle arc: B -> proton direction
+/vis/set/lineWidth 3
+/vis/set/colour 0.58 0.4 0.74
+/vis/set/textColour 0.58 0.4 0.74
+/vis/scene/add/line -1775 -1025 -176 -1750 -1000 -177 mm
+/vis/scene/add/line -1750 -1000 -177 -1725 -975 -181 mm
+/vis/scene/add/line -1725 -975 -181 -1701 -951 -187 mm
+/vis/scene/add/line -1701 -951 -187 -1676 -926 -196 mm
+/vis/scene/add/line -1676 -926 -196 -1653 -903 -207 mm
+/vis/scene/add/line -1653 -903 -207 -1629 -879 -221 mm
+/vis/scene/add/line -1629 -879 -221 -1607 -857 -237 mm
+/vis/scene/add/line -1607 -857 -237 -1585 -835 -254 mm
+/vis/scene/add/line -1585 -835 -254 -1565 -815 -275 mm
+/vis/scene/add/line -1565 -815 -275 -1545 -795 -297 mm
+/vis/scene/add/line -1545 -795 -297 -1527 -777 -321 mm
+/vis/scene/add/line -1527 -777 -321 -1510 -760 -347 mm
+/vis/scene/add/line -1510 -760 -347 -1494 -744 -374 mm
+/vis/scene/add/line -1494 -744 -374 -1479 -729 -403 mm
+/vis/scene/add/line -1479 -729 -403 -1466 -716 -433 mm
+/vis/scene/add/line -1466 -716 -433 -1455 -705 -465 mm
+/vis/scene/add/text -1540 -790 -153 mm 16 0 0 alpha
+
+# Gyrophase arc: +x -> projection
+/vis/set/colour green
+/vis/set/textColour green
+/vis/scene/add/line -1275 -1025 -676 -1276 -993 -676 mm
+/vis/scene/add/line -1276 -993 -676 -1280 -960 -676 mm
+/vis/scene/add/line -1280 -960 -676 -1285 -928 -676 mm
+/vis/scene/add/line -1285 -928 -676 -1292 -896 -676 mm
+/vis/scene/add/line -1292 -896 -676 -1302 -865 -676 mm
+/vis/scene/add/line -1302 -865 -676 -1313 -834 -676 mm
+/vis/scene/add/line -1313 -834 -676 -1327 -804 -676 mm
+/vis/scene/add/line -1327 -804 -676 -1342 -775 -676 mm
+/vis/scene/add/line -1342 -775 -676 -1360 -748 -676 mm
+/vis/scene/add/line -1360 -748 -676 -1379 -721 -676 mm
+/vis/scene/add/line -1379 -721 -676 -1399 -696 -676 mm
+/vis/scene/add/line -1399 -696 -676 -1422 -672 -676 mm
+/vis/scene/add/text -1203 -788 -826 mm 16 0 0 phi
+
+# Restore defaults; view from the -x (proton) side with B (+z) running left to right, tilted
+# off z so the phi plane isn't edge-on
+/vis/set/colour
+/vis/set/textColour
+/vis/set/lineWidth
+/vis/viewer/set/upVector 0 1 0
+/vis/viewer/set/viewpointVector -1 0.3 -0.5
+/vis/viewer/set/autoRefresh true
