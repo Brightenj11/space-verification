@@ -14,6 +14,7 @@ Needs numpy, matplotlib and uproot (pip install uproot); no ROOT install require
 import argparse
 
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 import numpy as np
 import uproot
 
@@ -38,10 +39,11 @@ def survival_curve(n_escaped: np.ndarray, n_max: int) -> tuple[np.ndarray, np.nd
     return ns, probs
 
 
-def build_curve(spec: str):
+def build_curve(spec: str, panel: str | None = None):
     path, label = spec.rsplit(":", 1)
     with uproot.open(path) as f:
-        n_escaped = f["Events"]["nEscapedTotal"].array(library="np")
+        column = {"side": "nHitSide", "end": "nHitEnd"}.get(panel, "nEscapedTotal")
+        n_escaped = f["Events"][column].array(library="np")
     ns, probs = survival_curve(n_escaped, int(n_escaped.max()))
     keep = probs > 0
     return label, len(n_escaped), ns[keep], probs[keep]
@@ -52,10 +54,13 @@ def main() -> None:
     ap.add_argument("files", nargs="+", help="path.root:Label pairs (new runs)")
     ap.add_argument("--ref", action="append", default=[], help="path.root:Label pairs (old runs to overlay)")
     ap.add_argument("--out", default="multi_neutron_escape.png")
+    ap.add_argument("--panel", choices=["side", "end"],
+                    help="count neutrons entering this ScoringPanel (side=+x behind beam, end=+z); "
+                         "needs runs with nHitSide/nHitEnd")
     args = ap.parse_args()
 
-    curves = [build_curve(spec) for spec in args.files]
-    refs = [build_curve(spec) for spec in args.ref]
+    curves = [build_curve(spec, args.panel) for spec in args.files]
+    refs = [build_curve(spec, args.panel) for spec in args.ref]
     full_events = max(n for _, n, _, _ in curves)
     n_max = max(ns.max() for _, _, ns, _ in curves + refs)
 
@@ -68,11 +73,15 @@ def main() -> None:
         ax.plot(ns, probs, "o", color=color, ms=8)
 
     ax.set_yscale("log")
-    ax.set_ylim(1e-5, 2.0)
+    # Floor just under one event (1/N), so single-event tail points stay on the plot.
+    ax.set_ylim(0.5 / full_events, 2.0)
     ax.set_xlim(-0.5, n_max + 0.5)
-    ax.set_xlabel("Escaping Neutrons (per Proton)", fontsize=16)
-    ax.set_ylabel("Probability of ≥ N Escaping Neutrons", fontsize=16)
-    ax.set_title("Probability of Multi-Neutron Escapes", fontsize=18)
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+    what = f"Neutrons Entering {args.panel.title()} Panel" if args.panel else "Escaping Neutrons"
+    ax.set_xlabel(f"{what} (per Proton)", fontsize=16)
+    ax.set_ylabel(f"Probability of ≥ N {what}", fontsize=16 if not args.panel else 14)
+    ax.set_title(f"{args.panel.title()} Panel Multi-Neutron Escape Probability" if args.panel
+                 else "Probability of Multi-Neutron Escapes", fontsize=18)
     ax.tick_params(labelsize=13)
     ax.grid(True, color="#e5e5e5")
     ax.set_axisbelow(True)

@@ -90,6 +90,7 @@ private:
 
   static thread_local std::array<int,6> t_nBornByReg;
   static thread_local std::array<int,6> t_nEscByBirthReg;
+  static thread_local std::array<int,2> t_nPanelHits;   // [0]=side panel, [1]=end panel
 
   static thread_local std::unordered_map<int, BirthInfo> t_birth;     // trackID -> birth info
   static thread_local std::unordered_set<int>            t_escaped;   // trackIDs already counted

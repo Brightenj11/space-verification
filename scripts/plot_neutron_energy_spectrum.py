@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reproduce the 'Neutron Energy Spectrum Shape' plot from EscapeNeutrons ntuples.
+"""Plot the escaping (or panel-entering, with --panel) neutron energy spectrum as raw counts.
 
 python plot_neutron_energy_spectrum.py build/outputs/proton_100MeV_Vacuum_seed1.root:Vacuum \
     build/outputs/proton_100MeV_Aluminum_seed1.root:Aluminum \
@@ -30,23 +30,59 @@ REF_COLORS = {  # darker shade of each material for the old/reference runs
     "WGPu": "#8b1a14",
 }
 
-E_MAX_MEV = 20.0
-N_BINS = 20  # 1 MeV wide bins
+BIN_MEV = 1.0
+E_MAX_MEV = 20.0  # above ~20 MeV it's hull background that doesn't depend on the payload; --emax to change
 
 
-def build_curve(spec: str, bin_edges: np.ndarray, bin_centers: np.ndarray):
+def load_energies(spec: str, panel: str | None = None):
     path, label = spec.rsplit(":", 1)
     with uproot.open(path) as f:
-        energies = f["EscapeNeutrons"]["escapeE_MeV"].array(library="np")
-        n_events = f["Events"].num_entries
+        if panel:
+            hits = f["PanelHits"].arrays(["panel", "E_MeV"], library="np")
+            energies = hits["E_MeV"][hits["panel"] == {"side": 0, "end": 1}[panel]]
+        else:
+            energies = f["EscapeNeutrons"]["escapeE_MeV"].array(library="np")
+        n_events = int(f["Events"].num_entries)
+    return label, n_events, energies
+
+
+def histogram(label, n_events, energies, bin_edges):
     counts, _ = np.histogram(energies, bins=bin_edges)
-    counts = counts.astype(float)
+    centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+    keep = counts > 0
+    return label, n_events, centers[keep], counts[keep]
 
-    norm = counts[0] if counts[0] > 0 else 1.0
-    rel_counts = counts / norm
 
-    keep = rel_counts > 0
-    return label, n_events, bin_centers[keep], rel_counts[keep]
+def plot_ratio(raw, bin_edges, args) -> None:
+    """Each material's per-proton counts / the first file's, bin by bin. Bins where either is 0 are skipped."""
+    centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+    base_label, base_n, base_e = raw[0]
+    base = np.histogram(base_e, bins=bin_edges)[0]
+
+    fig, ax = plt.subplots(figsize=(7.2, 6.4))
+    ax.axhline(1.0, color=COLORS.get(base_label, "black"), lw=1.5, ls=":", label=f"{base_label} (= 1)")
+    for label, n, e in raw[1:]:
+        c = np.histogram(e, bins=bin_edges)[0]
+        ok = (c > 0) & (base > 0)
+        r = (c[ok] / n) / (base[ok] / base_n)
+        err = r * np.sqrt(1 / c[ok] + 1 / base[ok])  # Poisson errors of both counts, in quadrature
+        color = COLORS.get(label, "black")
+        ax.errorbar(centers[ok], r, yerr=err, fmt="o--", color=color, ms=6, lw=1.5, capsize=2, alpha=0.8,
+                    label=label)
+
+    ax.set_yscale("log")
+    ax.set_xlim(bin_edges[0] - 0.5, bin_edges[-1] + 0.5)
+    ax.set_xlabel("Neutron Energy (MeV)", fontsize=16)
+    ax.set_ylabel(f"Counts / {base_label} counts ({args.bin_mev:g} MeV bins)", fontsize=16)
+    ax.set_title(f"{args.panel.title()} Panel Spectrum Ratio to {base_label}" if args.panel
+                 else f"Escaping Neutron Spectrum Ratio to {base_label}", fontsize=18)
+    ax.tick_params(labelsize=13)
+    ax.grid(True, color="#e5e5e5")
+    ax.set_axisbelow(True)
+    ax.legend(title="Sphere Material", fontsize=14, title_fontsize=12, handlelength=2.5)
+    fig.tight_layout()
+    fig.savefig(args.out, dpi=200)
+    print(f"Wrote {args.out}")
 
 
 def main() -> None:
@@ -54,12 +90,26 @@ def main() -> None:
     ap.add_argument("files", nargs="+", help="path.root:Label pairs (new runs)")
     ap.add_argument("--ref", action="append", default=[], help="path.root:Label pairs (old runs to overlay)")
     ap.add_argument("--out", default="neutron_energy_spectrum.png")
+    ap.add_argument("--panel", choices=["side", "end"],
+                    help="use neutrons entering this ScoringPanel (side=+x behind beam, end=+z); "
+                         "needs runs with a PanelHits ntuple")
+    ap.add_argument("--ratio", action="store_true",
+                    help="plot each material's counts divided by the FIRST file's (e.g. Vacuum), with sqrt(N) errors")
+    ap.add_argument("--bin-mev", type=float, default=BIN_MEV, help="energy bin width in MeV")
+    ap.add_argument("--emax", type=float, default=E_MAX_MEV,
+                    help="upper energy cut in MeV (neutrons above it are not plotted); 0 = highest energy in data")
     args = ap.parse_args()
 
-    bin_edges = np.linspace(0.0, E_MAX_MEV, N_BINS + 1)
-    bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
-    curves = [build_curve(spec, bin_edges, bin_centers) for spec in args.files]
-    refs = [build_curve(spec, bin_edges, bin_centers) for spec in args.ref]
+    raw = [load_energies(spec, args.panel) for spec in args.files]
+    raw_refs = [load_energies(spec, args.panel) for spec in args.ref]
+    bw = args.bin_mev
+    e_max = args.emax or np.ceil(max(e.max() for _, _, e in raw + raw_refs if len(e)) / bw) * bw
+    bin_edges = np.arange(0.0, e_max + bw / 2, bw)
+    if args.ratio:
+        plot_ratio(raw, bin_edges, args)
+        return
+    curves = [histogram(*r, bin_edges) for r in raw]
+    refs = [histogram(*r, bin_edges) for r in raw_refs]
     full_events = max(n for _, n, _, _ in curves)
 
     fig, ax = plt.subplots(figsize=(7.2, 6.4))
@@ -71,10 +121,11 @@ def main() -> None:
         ax.plot(xs, ys, "o", color=color, ms=8)
 
     ax.set_yscale("log")
-    ax.set_xlim(-0.5, E_MAX_MEV + 0.5)
+    ax.set_xlim(-0.5, e_max + 0.5)
     ax.set_xlabel("Neutron Energy (MeV)", fontsize=16)
-    ax.set_ylabel("Relative Counts (E≈0 normalized)", fontsize=16)
-    ax.set_title("Neutron Energy Spectrum Shape", fontsize=18)
+    ax.set_ylabel(f"Counts per {bw:g} MeV bin ({full_events:,} protons)", fontsize=16)
+    ax.set_title(f"{args.panel.title()} Panel Neutron Energy Spectrum" if args.panel
+                 else "Escaping Neutron Energy Spectrum", fontsize=18)
     ax.tick_params(labelsize=13)
     ax.grid(True, color="#e5e5e5")
     ax.set_axisbelow(True)

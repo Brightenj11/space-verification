@@ -131,7 +131,7 @@ If the **third** argument is exactly `decay`, the run registers `G4RadioactiveDe
   - **DEBUG ONLY**: kills neutrons at birth record → you will not see escape rows
 
 - `/pm/killNeutronsAfterEscape <true|false>`
-  - recommended `true` in vacuum‑world runs (kills neutrons after they are recorded escaping)
+  - kills neutrons after they are recorded escaping; keep `false` (default) or the ScoringPanels see nothing
 
 ### Primary generator controls (`/gun/…`)
 
@@ -443,6 +443,26 @@ Source:
 - `pitch_deg` (double): primary proton pitch angle relative to the bus axis (+z); -1 when the fixed gun is used
 - `hitBus` (int 0/1): 1 if the primary proton entered the bus (regions 1-5); disk-source protons that miss are 0
 - `E_primary_MeV` (double): primary proton kinetic energy at generation (sampled per event in pitch-table mode)
+
+ScoringPanel tallies:
+
+- `nHitSide` (int): neutrons entering ScoringPanel copy 0 (+x, behind the -x proton hit point)
+- `nHitEnd` (int): neutrons entering ScoringPanel copy 1 (+z end)
+
+### Ntuple: `PanelHits`
+
+One row each time a neutron crosses a boundary into `ScoringPanelLV` (both panels are 1 m x 1 m x 0.5 m
+vacuum boxes 1 m outside the hull). Requires `/pm/killNeutronsAfterEscape false`, otherwise neutrons are
+killed at escape and never reach a panel.
+
+Columns:
+
+- `eventID`, `trackID` (int)
+- `panel` (int): 0 = side (+x), 1 = end (+z)
+- `E_MeV` (double), `t_ns` (double): kinetic energy and global time on entering the panel
+- `posX_mm`, `posY_mm`, `posZ_mm` (double): entry point
+- `dirX`, `dirY`, `dirZ` (double): direction at entry
+- `birthRegion` (int), `birthE_MeV` (double), `creatorCode` (int): same as `EscapeNeutrons`
 
 ---
 

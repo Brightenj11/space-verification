@@ -37,7 +37,8 @@
 /pm/maxEventTime 1e8 ns
 /pm/killGammas true
 /pm/killNeutronsAfterRecord false
-/pm/killNeutronsAfterEscape true
+# must stay false: true kills neutrons before they reach the ScoringPanels
+/pm/killNeutronsAfterEscape false
 
 # ---------------- Beam: +x toward origin ----------------
 /gun/particle proton

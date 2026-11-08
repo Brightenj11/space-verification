@@ -32,8 +32,8 @@ G4bool   PMSteppingAction::sKillGammas              = true;
 // For your current objective, this MUST default false (or you will never see escapes)
 G4bool   PMSteppingAction::sKillNeutronsAfterRecord = false;
 
-// Outside is vacuum; killing after escape is a safe speedup
-G4bool   PMSteppingAction::sKillNeutronsAfterEscape = true;
+// Must stay false for ScoringPanel tallies: a neutron killed at escape never reaches a panel.
+G4bool   PMSteppingAction::sKillNeutronsAfterEscape = false;
 
 thread_local int    PMSteppingAction::t_evtId                = -1;
 
@@ -52,6 +52,7 @@ thread_local double PMSteppingAction::t_tFirstFission_ns     = -1.0;
 
 thread_local std::array<int,6> PMSteppingAction::t_nBornByReg    = {0,0,0,0,0,0};
 thread_local std::array<int,6> PMSteppingAction::t_nEscByBirthReg= {0,0,0,0,0,0};
+thread_local std::array<int,2> PMSteppingAction::t_nPanelHits    = {0,0};
 
 thread_local std::unordered_map<int, PMSteppingAction::BirthInfo> PMSteppingAction::t_birth;
 thread_local std::unordered_set<int> PMSteppingAction::t_escaped;
@@ -75,7 +76,7 @@ void PMSteppingAction::BuildMessenger() {
   fMessenger->DeclareProperty("killNeutronsAfterRecord", sKillNeutronsAfterRecord)
             .SetGuidance("DEBUG ONLY: kill neutron at birth record (prevents escape tally).");
   fMessenger->DeclareProperty("killNeutronsAfterEscape", sKillNeutronsAfterEscape)
-            .SetGuidance("Recommended: kill neutrons after they cross into WorldLV.");
+            .SetGuidance("Kill neutrons after they cross into WorldLV (speedup; true disables ScoringPanel hits).");
 }
 
 int PMSteppingAction::RegionCodeFromLVName(const G4String& lvName) {
@@ -180,6 +181,7 @@ void PMSteppingAction::ResetEventStateIfNew(int eid) {
 
   t_nBornByReg.fill(0);
   t_nEscByBirthReg.fill(0);
+  t_nPanelHits.fill(0);
 
   t_birth.clear();
   t_escaped.clear();
@@ -271,6 +273,8 @@ void PMSteppingAction::WriteEventsRow() {
   ana->FillNtupleDColumn(id, PMRunAction::kEvt_pitch_deg, gen ? gen->GetLastPitchDeg() : -1.0);
   ana->FillNtupleIColumn(id, PMRunAction::kEvt_hitBus, t_primaryHitBus ? 1 : 0);
   ana->FillNtupleDColumn(id, PMRunAction::kEvt_E_primary_MeV, gen ? gen->GetEnergy()/MeV : -1.0);
+  ana->FillNtupleIColumn(id, PMRunAction::kEvt_nHitSide, t_nPanelHits[0]);
+  ana->FillNtupleIColumn(id, PMRunAction::kEvt_nHitEnd, t_nPanelHits[1]);
 
   ana->AddNtupleRow(id);
 }
@@ -417,6 +421,41 @@ void PMSteppingAction::UserSteppingAction(const G4Step* step) {
           return;
         }
       }
+    }
+  }
+
+  // Neutron entering a ScoringPanel (copy 0 = side +x, copy 1 = end +z).
+  // ponytail: counts every entry; panels are vacuum so a track can't re-enter. Dedupe per
+  // (trackID, panel) if the panels get a scattering material.
+  if (def == G4Neutron::Definition() && post && post->GetStepStatus() == fGeomBoundary) {
+    const auto* pv = post->GetPhysicalVolume();
+    if (pv && pv->GetLogicalVolume()->GetName() == "ScoringPanelLV") {
+      const int panel = pv->GetCopyNo();
+      if (panel == 0 || panel == 1) t_nPanelHits[panel] += 1;
+
+      BirthInfo bi;
+      auto it = t_birth.find(track->GetTrackID());
+      if (it != t_birth.end()) bi = it->second;
+
+      auto* ana = G4AnalysisManager::Instance();
+      const int hid = fRunAction->PanelHitsId();
+      const auto pos = post->GetPosition();
+      const auto dir = post->GetMomentumDirection();
+      ana->FillNtupleIColumn(hid, PMRunAction::kHit_eventID, t_evtId);
+      ana->FillNtupleIColumn(hid, PMRunAction::kHit_trackID, track->GetTrackID());
+      ana->FillNtupleIColumn(hid, PMRunAction::kHit_panel, panel);
+      ana->FillNtupleDColumn(hid, PMRunAction::kHit_E_MeV, post->GetKineticEnergy()/MeV);
+      ana->FillNtupleDColumn(hid, PMRunAction::kHit_t_ns, post->GetGlobalTime()/ns);
+      ana->FillNtupleDColumn(hid, PMRunAction::kHit_posX, pos.x()/mm);
+      ana->FillNtupleDColumn(hid, PMRunAction::kHit_posY, pos.y()/mm);
+      ana->FillNtupleDColumn(hid, PMRunAction::kHit_posZ, pos.z()/mm);
+      ana->FillNtupleDColumn(hid, PMRunAction::kHit_dirX, dir.x());
+      ana->FillNtupleDColumn(hid, PMRunAction::kHit_dirY, dir.y());
+      ana->FillNtupleDColumn(hid, PMRunAction::kHit_dirZ, dir.z());
+      ana->FillNtupleIColumn(hid, PMRunAction::kHit_birthRegion, bi.region);
+      ana->FillNtupleDColumn(hid, PMRunAction::kHit_birthE_MeV, bi.E_MeV);
+      ana->FillNtupleIColumn(hid, PMRunAction::kHit_creatorCode, bi.creator);
+      ana->AddNtupleRow(hid);
     }
   }
 }

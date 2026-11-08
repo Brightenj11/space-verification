@@ -2,7 +2,7 @@
 
 Uses the same distribution the Geant4 gun samples from (/pmgun/pitchTable):
 weight = j(E, alpha) * sin(alpha) * dE, with j interpolated log-log in E and linear in alpha,
-mirrored about 90 deg. Each cell's color is its share of all sampled protons (log scale).
+mirrored about 90 deg. Each cell's color is its share of all sampled protons (linear scale).
 Pitch angle runs around the slice (90 deg straight up, 60/120 deg at the edges); energy runs
 radially, lowest energy nearest the center.
 
@@ -12,7 +12,8 @@ import argparse
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.colors import LogNorm
+from matplotlib.colors import BoundaryNorm
+from matplotlib.ticker import MaxNLocator
 
 ANGLE_EDGES = np.arange(60, 121, 5)                                       # deg
 ENERGY_EDGES = np.array([1, 2, 5, 10, 20, 50, 100, 200, 500, 1000])  # MeV
@@ -64,28 +65,35 @@ def main():
     theta = np.radians(ANGLE_EDGES)
     r = np.arange(n_e + 1)  # energy edge i sits at radius i: low energy at the center
 
+    fs = plt.rcParams["font.size"] + 2
     fig, ax = plt.subplots(figsize=(8, 7), subplot_kw={"projection": "polar"})
     cmap = plt.get_cmap("viridis").copy()
     cmap.set_bad("white")  # zero-probability cells (e.g. above the spectrum cut-off)
-    pos = prob[prob > 0]
-    mesh = ax.pcolormesh(theta, r, np.ma.masked_equal(prob, 0).T, cmap=cmap, shading="flat",
-                         norm=LogNorm(vmin=max(pos.min(), pos.max() * 1e-8), vmax=pos.max()))
+    pct = 100 * prob
+    # Discrete linear bins: a stepped colorbar makes neighbouring cells easy to tell apart.
+    levels = MaxNLocator(nbins=10).tick_values(0, pct.max())
+    mesh = ax.pcolormesh(theta, r, np.ma.masked_equal(pct, 0).T, cmap=cmap, shading="flat",
+                         norm=BoundaryNorm(levels, cmap.N))
 
     ax.set_thetamin(ANGLE_EDGES[0])
     ax.set_thetamax(ANGLE_EDGES[-1])
     ax.set_xticks(np.radians(ANGLE_EDGES[::2]))
-    ax.set_xticklabels([f"{d}°" for d in ANGLE_EDGES[::2]])
+    ax.set_xticklabels([f"{d}°" for d in ANGLE_EDGES[::2]], fontsize=fs)
     ax.set_rorigin(-2)  # small hole so the innermost (lowest-energy) ring isn't squeezed to a point
     ax.set_ylim(0, n_e)
     ax.set_yticks(r)
-    ax.set_yticklabels([f"{e:g}" for e in ENERGY_EDGES])
+    ax.set_yticklabels([f"{e:g}" for e in ENERGY_EDGES], fontsize=fs)
     # Energy tick labels sit along the 60 deg edge; put the axis label just outside them.
-    ax.text(np.radians(ANGLE_EDGES[0] - 14), n_e / 2, "Proton energy (MeV)", rotation=ANGLE_EDGES[0],
-            ha="center", va="center")
-    ax.set_title("AP9 trapped protons, 1000 km: sampling probability\npitch angle (around) vs energy (radial)")
+    ax.text(np.radians(ANGLE_EDGES[0] - 14), n_e / 2, "Proton Energy (MeV)", rotation=ANGLE_EDGES[0],
+            ha="center", va="center", fontsize=fs + 4)
+    # The title slot sits just above the arc's tick labels, so it doubles as the pitch-angle axis label.
+    ax.set_title("Pitch Angle (degrees)", fontsize=fs + 4)
     ax.grid(color="white", alpha=0.3)
 
-    fig.colorbar(mesh, ax=ax, shrink=0.6, pad=0.08, label="Probability per cell")
+    cbar = fig.colorbar(mesh, ax=ax, orientation="horizontal", location="bottom", shrink=0.6, pad=-0.05,
+                        ticks=levels)
+    cbar.set_label("Percentage of sampled protons", fontsize=fs)
+    cbar.ax.tick_params(labelsize=fs)
     fig.savefig(a.out, dpi=200, bbox_inches="tight")
     print(f"wrote {a.out}")
 

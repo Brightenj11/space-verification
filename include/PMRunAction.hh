@@ -17,6 +17,7 @@ public:
   int EventsId()  const { return fEventsNtupleId; }
   int EscapesId() const { return fEscapesNtupleId; }
   int RunConfigId() const { return fRunConfigNtupleId; }
+  int PanelHitsId() const { return fPanelHitsNtupleId; }
 
   // -------- RunConfig ntuple columns (must match SetupOutput order) --------
   enum RunConfigCols {
@@ -67,7 +68,27 @@ public:
     kEvt_vtxProcSubType,        // process subtype (int)
     kEvt_pitch_deg,             // primary pitch angle vs bus axis +z (deg); -1 = fixed gun
     kEvt_hitBus,                // 0/1: primary proton entered the bus (region 1..5)
-    kEvt_E_primary_MeV          // primary proton kinetic energy at generation
+    kEvt_E_primary_MeV,         // primary proton kinetic energy at generation
+    kEvt_nHitSide,              // neutrons entering ScoringPanel copy 0 (+x, behind the hit point)
+    kEvt_nHitEnd                // neutrons entering ScoringPanel copy 1 (+z end)
+  };
+
+  // -------- PanelHits ntuple columns (one row per neutron entering a ScoringPanel) --------
+  enum PanelHitsCols {
+    kHit_eventID = 0,
+    kHit_trackID,
+    kHit_panel,                 // ScoringPanel copy number: 0=side (+x), 1=end (+z)
+    kHit_E_MeV,                 // kinetic energy on entering the panel
+    kHit_t_ns,
+    kHit_posX,
+    kHit_posY,
+    kHit_posZ,
+    kHit_dirX,
+    kHit_dirY,
+    kHit_dirZ,
+    kHit_birthRegion,
+    kHit_birthE_MeV,
+    kHit_creatorCode
   };
 
   // -------- EscapeNeutrons ntuple columns --------
@@ -103,6 +124,7 @@ private:
   int fRunConfigNtupleId = -1;
   int fEventsNtupleId{-1};
   int fEscapesNtupleId{-1};
+  int fPanelHitsNtupleId{-1};
 };
 
 #endif

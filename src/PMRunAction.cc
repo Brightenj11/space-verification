@@ -154,6 +154,8 @@ void PMRunAction::SetupOutput() {
   ana->CreateNtupleDColumn(fEventsNtupleId, "pitch_deg");
   ana->CreateNtupleIColumn(fEventsNtupleId, "hitBus");
   ana->CreateNtupleDColumn(fEventsNtupleId, "E_primary_MeV");
+  ana->CreateNtupleIColumn(fEventsNtupleId, "nHitSide");
+  ana->CreateNtupleIColumn(fEventsNtupleId, "nHitEnd");
   ana->FinishNtuple(fEventsNtupleId);
 
   // ---- EscapeNeutrons (one row per neutron that escapes satellite) ----
@@ -180,6 +182,24 @@ void PMRunAction::SetupOutput() {
   ana->CreateNtupleIColumn(fEscapesNtupleId, "creatorProcessType");
   ana->CreateNtupleIColumn(fEscapesNtupleId, "creatorProcessSubType");
   ana->FinishNtuple(fEscapesNtupleId);
+
+  // ---- PanelHits (one row per neutron entering a ScoringPanel) ----
+  fPanelHitsNtupleId = ana->CreateNtuple("PanelHits", "Neutrons entering a ScoringPanel");
+  ana->CreateNtupleIColumn(fPanelHitsNtupleId, "eventID");
+  ana->CreateNtupleIColumn(fPanelHitsNtupleId, "trackID");
+  ana->CreateNtupleIColumn(fPanelHitsNtupleId, "panel");
+  ana->CreateNtupleDColumn(fPanelHitsNtupleId, "E_MeV");
+  ana->CreateNtupleDColumn(fPanelHitsNtupleId, "t_ns");
+  ana->CreateNtupleDColumn(fPanelHitsNtupleId, "posX_mm");
+  ana->CreateNtupleDColumn(fPanelHitsNtupleId, "posY_mm");
+  ana->CreateNtupleDColumn(fPanelHitsNtupleId, "posZ_mm");
+  ana->CreateNtupleDColumn(fPanelHitsNtupleId, "dirX");
+  ana->CreateNtupleDColumn(fPanelHitsNtupleId, "dirY");
+  ana->CreateNtupleDColumn(fPanelHitsNtupleId, "dirZ");
+  ana->CreateNtupleIColumn(fPanelHitsNtupleId, "birthRegion");
+  ana->CreateNtupleDColumn(fPanelHitsNtupleId, "birthE_MeV");
+  ana->CreateNtupleIColumn(fPanelHitsNtupleId, "creatorCode");
+  ana->FinishNtuple(fPanelHitsNtupleId);
 }
 
 
