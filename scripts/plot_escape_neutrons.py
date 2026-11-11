@@ -5,6 +5,7 @@ import argparse
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import plot_style  # noqa: F401  (shared font sizes)
 
 COLS = [
     "eventID", "trackID", "birthRegion",

@@ -271,17 +271,18 @@ G4VPhysicalVolume* PMDetectorConstruction::Construct() {
   auto* solidScoringPanel = new G4Box("ScoringPanel", scoreHalfX, scoreHalfY, scoreHalfZ);
   fLogicScoringPanel = new G4LogicalVolume(solidScoringPanel, vac, "ScoringPanelLV");
 
-  // Both panels face the payload (origin) from 1 m outside the hull (near face to hull).
-  // Copy 0: side panel on +x, behind the payload from the proton hit point at -x.
-  // Copy 1: end panel on +z, same panel rotated 90 deg about y so its thin axis runs along z.
-  const G4double scoreGap = 1000*mm;
-  new G4PVPlacement(nullptr, G4ThreeVector(fBusOuterRadius + scoreGap + scoreHalfX, 0.0, 0.0),
-                    fLogicScoringPanel, "ScoringPanelPV", logicWorld, false, 0, checkOverlaps);
+  // Both panels' near faces sit the same distance from the payload (origin): 1 m outside the
+  // curved wall = 1.75 m by default. The transverse panel is then only 0.75 m past the endcap.
+  // Copy 0: downstream panel on +x, behind the payload on the beam line (protons enter at -x).
+  // Copy 1: transverse panel on +z (90 deg to the beam), rotated 90 deg about y so its thin axis runs along z.
+  const G4double scoreStandoff = fBusOuterRadius + 1000*mm; // origin to panel near face
+  new G4PVPlacement(nullptr, G4ThreeVector(scoreStandoff + scoreHalfX, 0.0, 0.0),
+                    fLogicScoringPanel, "ScoringPanelPV_Downstream", logicWorld, false, 0, checkOverlaps);
 
-  auto* rotEnd = new G4RotationMatrix();
-  rotEnd->rotateY(90.*deg);
-  new G4PVPlacement(rotEnd, G4ThreeVector(0.0, 0.0, busHalfLength + scoreGap + scoreHalfX),
-                    fLogicScoringPanel, "ScoringPanelPV_End", logicWorld, false, 1, checkOverlaps);
+  auto* rotTransverse = new G4RotationMatrix();
+  rotTransverse->rotateY(90.*deg);
+  new G4PVPlacement(rotTransverse, G4ThreeVector(0.0, 0.0, scoreStandoff + scoreHalfX),
+                    fLogicScoringPanel, "ScoringPanelPV_Transverse", logicWorld, false, 1, checkOverlaps);
 
 
   // Visualization attributes for each component

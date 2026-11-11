@@ -11,6 +11,7 @@ Usage: python scripts/plot_energies_and_angles_heatmap.py macros/ap9_pitch_1000k
 import argparse
 
 import matplotlib.pyplot as plt
+import plot_style  # noqa: F401  (shared font sizes)
 import numpy as np
 from matplotlib.colors import BoundaryNorm
 from matplotlib.ticker import MaxNLocator
@@ -65,7 +66,7 @@ def main():
     theta = np.radians(ANGLE_EDGES)
     r = np.arange(n_e + 1)  # energy edge i sits at radius i: low energy at the center
 
-    fs = plt.rcParams["font.size"] + 2
+    fs = plot_style.FS
     fig, ax = plt.subplots(figsize=(8, 7), subplot_kw={"projection": "polar"})
     cmap = plt.get_cmap("viridis").copy()
     cmap.set_bad("white")  # zero-probability cells (e.g. above the spectrum cut-off)

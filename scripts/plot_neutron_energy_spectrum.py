@@ -14,6 +14,7 @@ Needs numpy, matplotlib and uproot (pip install uproot); no ROOT install require
 import argparse
 
 import matplotlib.pyplot as plt
+import plot_style  # noqa: F401  (shared font sizes)
 import numpy as np
 import uproot
 
@@ -39,18 +40,20 @@ def load_energies(spec: str, panel: str | None = None):
     with uproot.open(path) as f:
         if panel:
             hits = f["PanelHits"].arrays(["panel", "E_MeV"], library="np")
-            energies = hits["E_MeV"][hits["panel"] == {"side": 0, "end": 1}[panel]]
+            energies = hits["E_MeV"][hits["panel"] == {"downstream": 0, "transverse": 1}[panel]]
         else:
             energies = f["EscapeNeutrons"]["escapeE_MeV"].array(library="np")
         n_events = int(f["Events"].num_entries)
     return label, n_events, energies
 
 
-def histogram(label, n_events, energies, bin_edges):
+def histogram(label, n_events, energies, bin_edges, normalize=True):
+    """Counts per bin; with normalize, divided by the first (lowest-energy) bin so curves compare by shape."""
     counts, _ = np.histogram(energies, bins=bin_edges)
     centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
     keep = counts > 0
-    return label, n_events, centers[keep], counts[keep]
+    ys = counts / counts[0] if normalize else counts
+    return label, n_events, centers[keep], ys[keep]
 
 
 def plot_ratio(raw, bin_edges, args) -> None:
@@ -72,14 +75,44 @@ def plot_ratio(raw, bin_edges, args) -> None:
 
     ax.set_yscale("log")
     ax.set_xlim(bin_edges[0] - 0.5, bin_edges[-1] + 0.5)
-    ax.set_xlabel("Neutron Energy (MeV)", fontsize=16)
-    ax.set_ylabel(f"Counts / {base_label} counts ({args.bin_mev:g} MeV bins)", fontsize=16)
+    ax.set_xlabel("Neutron Energy (MeV)")
+    ax.set_ylabel(f"Counts / {base_label} counts ({args.bin_mev:g} MeV bins)")
     ax.set_title(f"{args.panel.title()} Panel Spectrum Ratio to {base_label}" if args.panel
-                 else f"Escaping Neutron Spectrum Ratio to {base_label}", fontsize=18)
-    ax.tick_params(labelsize=13)
+                 else f"Escaping Neutron Spectrum Ratio to {base_label}")
     ax.grid(True, color="#e5e5e5")
     ax.set_axisbelow(True)
-    ax.legend(title="Sphere Material", fontsize=14, title_fontsize=12, handlelength=2.5)
+    ax.legend(title="Sphere Material", handlelength=2.5)
+    fig.tight_layout()
+    fig.savefig(args.out, dpi=200)
+    print(f"Wrote {args.out}")
+
+
+def plot_excess(raw, bin_edges, args) -> None:
+    """Hits per bin of the --excess material minus each other material's."""
+    centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+    sig = next((r for r in raw if r[0] == args.excess), None)
+    if sig is None:
+        raise SystemExit(f"--excess {args.excess}: no file with that label")
+    s = np.histogram(sig[2], bins=bin_edges)[0]
+
+    fig, ax = plt.subplots(figsize=(7.2, 6.4))
+    ax.axhline(0.0, color="black", lw=1)
+    for label, _, e in raw:
+        if label == args.excess:
+            continue
+        b = np.histogram(e, bins=bin_edges)[0]
+        color = COLORS.get(label, "black")
+        ax.plot(centers, s - b, "--", color=color, lw=2, alpha=0.7, label=f"{args.excess} − {label}")
+        ax.plot(centers, s - b, "o", color=color, ms=8)
+
+    ax.set_xlim(bin_edges[0] - 0.5, bin_edges[-1] + 0.5)
+    ax.set_xlabel("Neutron Energy (MeV)")
+    ax.set_ylabel(f"Extra {args.excess} counts per {args.bin_mev:g} MeV bin")
+    ax.set_title(f"{args.panel.title()} Panel {args.excess} Excess" if args.panel
+                 else f"Escaping Neutron {args.excess} Excess")
+    ax.grid(True, color="#e5e5e5")
+    ax.set_axisbelow(True)
+    ax.legend(title=f"{sig[1]:,} protons", handlelength=2.5)
     fig.tight_layout()
     fig.savefig(args.out, dpi=200)
     print(f"Wrote {args.out}")
@@ -90,11 +123,16 @@ def main() -> None:
     ap.add_argument("files", nargs="+", help="path.root:Label pairs (new runs)")
     ap.add_argument("--ref", action="append", default=[], help="path.root:Label pairs (old runs to overlay)")
     ap.add_argument("--out", default="neutron_energy_spectrum.png")
-    ap.add_argument("--panel", choices=["side", "end"],
-                    help="use neutrons entering this ScoringPanel (side=+x behind beam, end=+z); "
+    ap.add_argument("--panel", choices=["downstream", "transverse"],
+                    help="use neutrons entering this ScoringPanel (downstream=+x behind payload on the beam "
+                         "line, transverse=+z at 90 deg to the beam); "
                          "needs runs with a PanelHits ntuple")
     ap.add_argument("--ratio", action="store_true",
                     help="plot each material's counts divided by the FIRST file's (e.g. Vacuum), with sqrt(N) errors")
+    ap.add_argument("--counts", action="store_true",
+                    help="plot raw counts instead of the shape (each curve divided by its lowest-energy bin)")
+    ap.add_argument("--excess", metavar="LABEL",
+                    help="plot LABEL's counts minus every other file's, bin by bin (e.g. --excess WGPu)")
     ap.add_argument("--bin-mev", type=float, default=BIN_MEV, help="energy bin width in MeV")
     ap.add_argument("--emax", type=float, default=E_MAX_MEV,
                     help="upper energy cut in MeV (neutrons above it are not plotted); 0 = highest energy in data")
@@ -108,8 +146,11 @@ def main() -> None:
     if args.ratio:
         plot_ratio(raw, bin_edges, args)
         return
-    curves = [histogram(*r, bin_edges) for r in raw]
-    refs = [histogram(*r, bin_edges) for r in raw_refs]
+    if args.excess:
+        plot_excess(raw, bin_edges, args)
+        return
+    curves = [histogram(*r, bin_edges, not args.counts) for r in raw]
+    refs = [histogram(*r, bin_edges, not args.counts) for r in raw_refs]
     full_events = max(n for _, n, _, _ in curves)
 
     fig, ax = plt.subplots(figsize=(7.2, 6.4))
@@ -122,11 +163,11 @@ def main() -> None:
 
     ax.set_yscale("log")
     ax.set_xlim(-0.5, e_max + 0.5)
-    ax.set_xlabel("Neutron Energy (MeV)", fontsize=16)
-    ax.set_ylabel(f"Counts per {bw:g} MeV bin ({full_events:,} protons)", fontsize=16)
+    ax.set_xlabel("Neutron Energy (MeV)")
+    ax.set_ylabel(f"Counts per {bw:g} MeV bin ({full_events:,} protons)" if args.counts
+                  else "Relative Counts (E≈0 normalized)")
     ax.set_title(f"{args.panel.title()} Panel Neutron Energy Spectrum" if args.panel
-                 else "Escaping Neutron Energy Spectrum", fontsize=18)
-    ax.tick_params(labelsize=13)
+                 else "Escaping Neutron Energy Spectrum")
     ax.grid(True, color="#e5e5e5")
     ax.set_axisbelow(True)
     for label, _, xs, ys in refs:
@@ -134,7 +175,7 @@ def main() -> None:
         ax.plot(xs, ys, "-", color=color, lw=1.5, alpha=0.8, label=f"{label} (old)")
         ax.plot(xs, ys, "s", color=color, ms=6, mfc="none", mew=1.5)
 
-    ax.legend(title="Sphere Material", fontsize=12 if args.ref else 14, title_fontsize=12, handlelength=2.5,
+    ax.legend(title="Sphere Material", handlelength=2.5,
               ncol=2 if args.ref else 1)
     fig.tight_layout()
     fig.savefig(args.out, dpi=200)

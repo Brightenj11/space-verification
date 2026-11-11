@@ -1,6 +1,7 @@
 import glob
 import re
 import matplotlib.pyplot as plt
+import plot_style  # noqa: F401  (shared font sizes)
 import pandas as pd
 
 """ 

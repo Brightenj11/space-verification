@@ -69,15 +69,15 @@ public:
     kEvt_pitch_deg,             // primary pitch angle vs bus axis +z (deg); -1 = fixed gun
     kEvt_hitBus,                // 0/1: primary proton entered the bus (region 1..5)
     kEvt_E_primary_MeV,         // primary proton kinetic energy at generation
-    kEvt_nHitSide,              // neutrons entering ScoringPanel copy 0 (+x, behind the hit point)
-    kEvt_nHitEnd                // neutrons entering ScoringPanel copy 1 (+z end)
+    kEvt_nHitDownstream,        // neutrons entering ScoringPanel copy 0 (downstream: +x, behind the payload on the beam line)
+    kEvt_nHitTransverse         // neutrons entering ScoringPanel copy 1 (transverse: +z, 90 deg to the beam)
   };
 
   // -------- PanelHits ntuple columns (one row per neutron entering a ScoringPanel) --------
   enum PanelHitsCols {
     kHit_eventID = 0,
     kHit_trackID,
-    kHit_panel,                 // ScoringPanel copy number: 0=side (+x), 1=end (+z)
+    kHit_panel,                 // ScoringPanel copy number: 0=downstream (+x), 1=transverse (+z)
     kHit_E_MeV,                 // kinetic energy on entering the panel
     kHit_t_ns,
     kHit_posX,

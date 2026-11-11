@@ -53,7 +53,10 @@ Physics list defaults to `FTFP_INCLXX_HP` and is selected via `G4PhysListFactory
 the macro (`/analysis/setFileName`, `/analysis/setFileType root`); Geant4 does not create
 output directories, so the target dir must exist first.
 
-AP9 exports (`scripts/1000km_<angle>deg_ap9.txt`, flux vs. time at one pitch angle each) are
+AP9 exports (`scripts/1000km_<angle>deg_ap9.txt`, flux vs. time at one user-chosen pitch angle each) are
+unidirectional differential flux, #/cm²/s/sr/MeV: the export header says `#/cm^2/MeV/sec` but omits
+the `/sr`. A flux in one specific direction is necessarily per steradian, so treat it as /sr when
+integrating over direction. The exports are
 collapsed into a pitch × energy CSV with `scripts/ap9_pitch_table.py` (kept in `macros/`, e.g.
 `macros/ap9_pitch_1000km.csv`), and the gun reads that CSV via `/pmgun/pitchTable`.
 

@@ -273,8 +273,8 @@ void PMSteppingAction::WriteEventsRow() {
   ana->FillNtupleDColumn(id, PMRunAction::kEvt_pitch_deg, gen ? gen->GetLastPitchDeg() : -1.0);
   ana->FillNtupleIColumn(id, PMRunAction::kEvt_hitBus, t_primaryHitBus ? 1 : 0);
   ana->FillNtupleDColumn(id, PMRunAction::kEvt_E_primary_MeV, gen ? gen->GetEnergy()/MeV : -1.0);
-  ana->FillNtupleIColumn(id, PMRunAction::kEvt_nHitSide, t_nPanelHits[0]);
-  ana->FillNtupleIColumn(id, PMRunAction::kEvt_nHitEnd, t_nPanelHits[1]);
+  ana->FillNtupleIColumn(id, PMRunAction::kEvt_nHitDownstream, t_nPanelHits[0]);
+  ana->FillNtupleIColumn(id, PMRunAction::kEvt_nHitTransverse, t_nPanelHits[1]);
 
   ana->AddNtupleRow(id);
 }
@@ -424,7 +424,7 @@ void PMSteppingAction::UserSteppingAction(const G4Step* step) {
     }
   }
 
-  // Neutron entering a ScoringPanel (copy 0 = side +x, copy 1 = end +z).
+  // Neutron entering a ScoringPanel (copy 0 = downstream +x, copy 1 = transverse +z).
   // ponytail: counts every entry; panels are vacuum so a track can't re-enter. Dedupe per
   // (trackID, panel) if the panels get a scattering material.
   if (def == G4Neutron::Definition() && post && post->GetStepStatus() == fGeomBoundary) {

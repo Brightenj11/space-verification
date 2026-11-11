@@ -154,8 +154,8 @@ void PMRunAction::SetupOutput() {
   ana->CreateNtupleDColumn(fEventsNtupleId, "pitch_deg");
   ana->CreateNtupleIColumn(fEventsNtupleId, "hitBus");
   ana->CreateNtupleDColumn(fEventsNtupleId, "E_primary_MeV");
-  ana->CreateNtupleIColumn(fEventsNtupleId, "nHitSide");
-  ana->CreateNtupleIColumn(fEventsNtupleId, "nHitEnd");
+  ana->CreateNtupleIColumn(fEventsNtupleId, "nHitDownstream");
+  ana->CreateNtupleIColumn(fEventsNtupleId, "nHitTransverse");
   ana->FinishNtuple(fEventsNtupleId);
 
   // ---- EscapeNeutrons (one row per neutron that escapes satellite) ----

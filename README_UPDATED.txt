@@ -446,19 +446,20 @@ Source:
 
 ScoringPanel tallies:
 
-- `nHitSide` (int): neutrons entering ScoringPanel copy 0 (+x, behind the -x proton hit point)
-- `nHitEnd` (int): neutrons entering ScoringPanel copy 1 (+z end)
+- `nHitDownstream` (int): neutrons entering ScoringPanel copy 0 (downstream: +x, behind the payload on the beam line)
+- `nHitTransverse` (int): neutrons entering ScoringPanel copy 1 (transverse: +z, 90 deg to the beam)
 
 ### Ntuple: `PanelHits`
 
 One row each time a neutron crosses a boundary into `ScoringPanelLV` (both panels are 1 m x 1 m x 0.5 m
-vacuum boxes 1 m outside the hull). Requires `/pm/killNeutronsAfterEscape false`, otherwise neutrons are
+vacuum boxes whose near faces are both 1.75 m from the payload: 1 m outside the curved wall for the
+downstream panel, 0.75 m past the endcap for the transverse panel). Requires `/pm/killNeutronsAfterEscape false`, otherwise neutrons are
 killed at escape and never reach a panel.
 
 Columns:
 
 - `eventID`, `trackID` (int)
-- `panel` (int): 0 = side (+x), 1 = end (+z)
+- `panel` (int): 0 = downstream (+x), 1 = transverse (+z)
 - `E_MeV` (double), `t_ns` (double): kinetic energy and global time on entering the panel
 - `posX_mm`, `posY_mm`, `posZ_mm` (double): entry point
 - `dirX`, `dirY`, `dirZ` (double): direction at entry

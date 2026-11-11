@@ -14,6 +14,7 @@ Needs numpy, matplotlib and uproot (pip install uproot); no ROOT install require
 import argparse
 
 import matplotlib.pyplot as plt
+import plot_style  # noqa: F401  (shared font sizes)
 from matplotlib.ticker import MaxNLocator
 import numpy as np
 import uproot
@@ -42,7 +43,10 @@ def survival_curve(n_escaped: np.ndarray, n_max: int) -> tuple[np.ndarray, np.nd
 def build_curve(spec: str, panel: str | None = None):
     path, label = spec.rsplit(":", 1)
     with uproot.open(path) as f:
-        column = {"side": "nHitSide", "end": "nHitEnd"}.get(panel, "nEscapedTotal")
+        column = {"downstream": "nHitDownstream", "transverse": "nHitTransverse"}.get(panel, "nEscapedTotal")
+        # ponytail: pre-rename runs store nHitSide/nHitEnd; drop this once they are rerun.
+        if column not in f["Events"]:
+            column = {"nHitDownstream": "nHitSide", "nHitTransverse": "nHitEnd"}[column]
         n_escaped = f["Events"][column].array(library="np")
     ns, probs = survival_curve(n_escaped, int(n_escaped.max()))
     keep = probs > 0
@@ -54,9 +58,9 @@ def main() -> None:
     ap.add_argument("files", nargs="+", help="path.root:Label pairs (new runs)")
     ap.add_argument("--ref", action="append", default=[], help="path.root:Label pairs (old runs to overlay)")
     ap.add_argument("--out", default="multi_neutron_escape.png")
-    ap.add_argument("--panel", choices=["side", "end"],
-                    help="count neutrons entering this ScoringPanel (side=+x behind beam, end=+z); "
-                         "needs runs with nHitSide/nHitEnd")
+    ap.add_argument("--panel", choices=["downstream", "transverse"],
+                    help="count neutrons entering this ScoringPanel (downstream=+x behind payload on the "
+                         "beam line, transverse=+z at 90 deg to the beam); needs runs with panel tallies")
     args = ap.parse_args()
 
     curves = [build_curve(spec, args.panel) for spec in args.files]
@@ -78,11 +82,10 @@ def main() -> None:
     ax.set_xlim(-0.5, n_max + 0.5)
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
     what = f"Neutrons Entering {args.panel.title()} Panel" if args.panel else "Escaping Neutrons"
-    ax.set_xlabel(f"{what} (per Proton)", fontsize=16)
-    ax.set_ylabel(f"Probability of ≥ N {what}", fontsize=16 if not args.panel else 14)
+    ax.set_xlabel(f"{what} (per Proton)")
+    ax.set_ylabel("Probability of ≥ N")
     ax.set_title(f"{args.panel.title()} Panel Multi-Neutron Escape Probability" if args.panel
-                 else "Probability of Multi-Neutron Escapes", fontsize=18)
-    ax.tick_params(labelsize=13)
+                 else "Probability of Multi-Neutron Escapes")
     ax.grid(True, color="#e5e5e5")
     ax.set_axisbelow(True)
     for label, _, xs, ys in refs:
@@ -90,7 +93,7 @@ def main() -> None:
         ax.plot(xs, ys, "-", color=color, lw=1.5, alpha=0.8, label=f"{label} (old)")
         ax.plot(xs, ys, "s", color=color, ms=6, mfc="none", mew=1.5)
 
-    ax.legend(title="Sphere Material", fontsize=12 if args.ref else 14, title_fontsize=12, handlelength=2.5,
+    ax.legend(title="Sphere Material", handlelength=2.5,
               ncol=2 if args.ref else 1)
     fig.tight_layout()
     fig.savefig(args.out, dpi=200)
